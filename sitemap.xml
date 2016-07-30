@@ -2,6 +2,41 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>http://yoursite.com/2016/07/30/awk/</loc>
+    
+    <lastmod>2016-07-30T13:58:41.253Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://yoursite.com/tags/index-1.html</loc>
+    
+    <lastmod>2016-07-30T13:47:26.676Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://yoursite.com/categories/index-1.html</loc>
+    
+    <lastmod>2016-07-30T13:47:23.440Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://yoursite.com/categories/index.html</loc>
+    
+    <lastmod>2016-07-30T13:41:51.795Z</lastmod>
+    
+  </url>
+  
+  <url>
+    <loc>http://yoursite.com/tags/index.html</loc>
+    
+    <lastmod>2016-07-30T13:41:21.500Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>http://yoursite.com/2016/07/30/hello-world/</loc>
     
     <lastmod>2016-07-30T12:59:42.872Z</lastmod>

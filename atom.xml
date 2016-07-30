@@ -1,19 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>Hexo</title>
-  
+  <subtitle>TitenWang&#39;s blog</subtitle>
   <link href="/atom.xml" rel="self"/>
   
   <link href="http://yoursite.com/"/>
-  <updated>2016-07-30T12:59:42.872Z</updated>
+  <updated>2016-07-30T13:58:41.253Z</updated>
   <id>http://yoursite.com/</id>
   
   <author>
-    <name>John Doe</name>
-    
+    <name>TitenWang</name>
+    <email>TitenWang2013@hotmail.com</email>
   </author>
   
   <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>awk</title>
+    <link href="http://yoursite.com/2016/07/30/awk/"/>
+    <id>http://yoursite.com/2016/07/30/awk/</id>
+    <published>2016-07-30T13:55:26.000Z</published>
+    <updated>2016-07-30T13:58:41.253Z</updated>
+    
+    <content type="html"><![CDATA[<hr>
+<p><em>*</em>-此教程用于awk初学者用于快速将awk运用起来-</p>
+<hr>
+<p><em>*</em>–By TitenWang</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;hr&gt;
+&lt;p&gt;&lt;em&gt;*&lt;/em&gt;-此教程用于awk初学者用于快速将awk运用起来-&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;&lt;em&gt;*&lt;/em&gt;–By TitenWang&lt;/p&gt;
+
+    
+    </summary>
+    
+      <category term="教程" scheme="http://yoursite.com/categories/%E6%95%99%E7%A8%8B/"/>
+    
+    
+      <category term="教程" scheme="http://yoursite.com/tags/%E6%95%99%E7%A8%8B/"/>
+    
+  </entry>
   
   <entry>
     <title>Hello World</title>
