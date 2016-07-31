@@ -4,9 +4,9 @@
   <subtitle>TitenWang&#39;s Blog</subtitle>
   <link href="/atom.xml" rel="self"/>
   
-  <link href="http://yoursite.com/"/>
+  <link href="http://TitenWang.github.io/"/>
   <updated>2016-07-31T06:20:00.292Z</updated>
-  <id>http://yoursite.com/</id>
+  <id>http://TitenWang.github.io/</id>
   
   <author>
     <name>TitenWang</name>
@@ -17,8 +17,8 @@
   
   <entry>
     <title>Hello World</title>
-    <link href="http://yoursite.com/2016/07/30/awk/"/>
-    <id>http://yoursite.com/2016/07/30/awk/</id>
+    <link href="http://TitenWang.github.io/2016/07/30/awk/"/>
+    <id>http://TitenWang.github.io/2016/07/30/awk/</id>
     <published>2016-07-30T13:55:26.143Z</published>
     <updated>2016-07-31T06:20:00.292Z</updated>
     
@@ -33,17 +33,17 @@
     
     </summary>
     
-      <category term="Shell" scheme="http://yoursite.com/categories/Shell/"/>
+      <category term="Shell" scheme="http://TitenWang.github.io/categories/Shell/"/>
     
     
-      <category term="Shell" scheme="http://yoursite.com/tags/Shell/"/>
+      <category term="Shell" scheme="http://TitenWang.github.io/tags/Shell/"/>
     
   </entry>
   
   <entry>
     <title>Hello World</title>
-    <link href="http://yoursite.com/2016/07/30/hello-world/"/>
-    <id>http://yoursite.com/2016/07/30/hello-world/</id>
+    <link href="http://TitenWang.github.io/2016/07/30/hello-world/"/>
+    <id>http://TitenWang.github.io/2016/07/30/hello-world/</id>
     <published>2016-07-30T12:59:42.107Z</published>
     <updated>2016-07-31T06:20:02.846Z</updated>
     
@@ -65,10 +65,10 @@
     
     </summary>
     
-      <category term="Testing" scheme="http://yoursite.com/categories/Testing/"/>
+      <category term="Testing" scheme="http://TitenWang.github.io/categories/Testing/"/>
     
     
-      <category term="Testing" scheme="http://yoursite.com/tags/Testing/"/>
+      <category term="Testing" scheme="http://TitenWang.github.io/tags/Testing/"/>
     
   </entry>
   
