@@ -38,6 +38,10 @@
 
 
 
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
 
 
 
@@ -75,7 +79,7 @@
     sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
     back2top: true,
     back2top_sidebar: false,
-    fancybox: false,
+    fancybox: true,
     fastclick: false,
     lazyload: false,
     tabs: true,
@@ -104,10 +108,12 @@
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="rps的全称是Receive Package Steering，rfs的全称是Receive Flow Steering，rps和rfs是google的工程师提供的两个补丁，用以在软件层面实现报文在多个cpu之间的负载均衡以及提高报文处理的缓存命中率。rps和rfs出现的原因主要有以下两个：　　1、    对于多队列网卡，网卡硬件接收队列与cpu核数在数量上不匹配导致报文在cpu之间分配不均。">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://titenwang.github.io/2017/07/09/implementation-of-rps-and-rfs/ents项内存布局.png">
 <meta property="og:updated_time" content="2017-07-10T16:24:02.249Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Linux中rps&#x2F;rfs的原理及实现">
 <meta name="twitter:description" content="rps的全称是Receive Package Steering，rfs的全称是Receive Flow Steering，rps和rfs是google的工程师提供的两个补丁，用以在软件层面实现报文在多个cpu之间的负载均衡以及提高报文处理的缓存命中率。rps和rfs出现的原因主要有以下两个：　　1、    对于多队列网卡，网卡硬件接收队列与cpu核数在数量上不匹配导致报文在cpu之间分配不均。">
+<meta name="twitter:image" content="https://titenwang.github.io/2017/07/09/implementation-of-rps-and-rfs/ents项内存布局.png">
 
 
 
@@ -533,7 +539,7 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">rps_record_sock_flow</span><span class="params">(struct rps_sock_flow_table *table,</span></span></span><br><span class="line"><span class="function"><span class="params">					u32 hash)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (table &amp;&amp; hash) &#123;</span><br><span class="line">		<span class="comment">/* 用hash值对表的掩码求余，获取对应的表项索引 */</span></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">int</span> index = hash &amp; table-&gt;mask;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* 保留hash值的高位，将用来存放cpu id的低位清零 */</span></span><br><span class="line">		u32 val = hash &amp; ~rps_cpu_mask;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* We only give a hint, preemption can change CPU under us */</span></span><br><span class="line">		<span class="comment">/* </span></span><br><span class="line"><span class="comment">		 * raw_smp_processor_id()获取当前cpu，经过上面和这两部分，val存放了</span></span><br><span class="line"><span class="comment">		 * 高位hash值和cpu id，为什么在高位还需要保留部分hash值而不直接存放cpu</span></span><br><span class="line"><span class="comment">		 * id呢?原因是因为在get_rps_cpu()函数中，还会用val中存放的高位hash值</span></span><br><span class="line"><span class="comment">		 * 来校验skb中的hash值是否在rps_sock_flow_table中有对应的记录。详情可以</span></span><br><span class="line"><span class="comment">		 * 参考get_rps_cpu()。</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		val |= raw_smp_processor_id();</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* 记录hash值对应的cpu */</span></span><br><span class="line">		<span class="keyword">if</span> (table-&gt;ents[index] != val)</span><br><span class="line">			table-&gt;ents[index] = val;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>　　在该函数中，table传递的就是全局socket流表rps_sock_flow_table的地址，hash则是流hash，也就是通过报文计算得到的hash值。从这个函数的实现我们可以看到，ents柔性数组中存放的不仅仅是当前处理流中报文的应用程序所在的cpu，其中还包括了流的hash值的高位数据，其内存布局如下：</p>
-<div align="center">  </div>
+<div align="center"> <img src="/2017/07/09/implementation-of-rps-and-rfs/ents项内存布局.png" title="图1 ents项内存布局"> </div>
 
 <p>　　为什么流表项中不直接存放cpu信息，还要存放hash值的高位部分呢？这个主要使用来做校验的，这部分可以在函数get_rps_cpu()中看到。介绍了rfs负载均衡策略中会使用到的两种流表之后，再来理解其负载均衡策略就比较清晰了。</p>
 <h3 id="rfs的负载均衡"><a href="#rfs的负载均衡" class="headerlink" title="rfs的负载均衡"></a>rfs的负载均衡</h3><p>　　上面说到，rfs相比于rps，主要差别就是在选取分发处理报文的目标cpu上。所以rfs负载均衡策略的实现也主要体现在函数get_rps_cpu()中，其实现如下：</p>
@@ -561,6 +567,30 @@
     
     
 
+    
+      <div>
+        
+
+
+
+
+  
+
+
+
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>TitenWang</li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    
+    <a href="https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/" title="Linux中rps/rfs的原理及实现">https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
+</ul>
+
+      </div>
     
 
     <footer class="post-footer">
@@ -760,6 +790,16 @@
           
 
           
+             <div class="cc-license motion-element" itemprop="license">
+              
+              
+                
+              
+              
+              
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+             </div>
+          
 
           
           
@@ -889,13 +929,9 @@
 
 
 
+  
 
 
-  
-    
-    
-  
-  <script color="0,0,255" opacity="0.5" zindex="-1" count="99" src="/lib/canvas-nest/canvas-nest.min.js"></script>
 
 
 
@@ -920,6 +956,9 @@
 
   
   <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
 
   
   <script src="/lib/three/three.min.js"></script>

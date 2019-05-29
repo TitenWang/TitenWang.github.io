@@ -38,6 +38,10 @@
 
 
 
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
 
 
 
@@ -75,7 +79,7 @@
     sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
     back2top: true,
     back2top_sidebar: false,
-    fancybox: false,
+    fancybox: true,
     fastclick: false,
     lazyload: false,
     tabs: true,
@@ -104,10 +108,13 @@
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="Nginx的ngx_http_rewrite_module模块使用了Nginx的脚本引擎，提供了外部变量的功能，主要是通过set命令进行定义。">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://titenwang.github.io/2016/08/02/set-script-engine/复杂值参数编译内存布局.png">
+<meta property="og:image" content="https://titenwang.github.io/2016/08/02/set-script-engine/ngx_http_rewrite_handler处理流程.png">
 <meta property="og:updated_time" content="2017-04-17T17:27:47.981Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="实例分析set命令及相关脚本引擎">
 <meta name="twitter:description" content="Nginx的ngx_http_rewrite_module模块使用了Nginx的脚本引擎，提供了外部变量的功能，主要是通过set命令进行定义。">
+<meta name="twitter:image" content="https://titenwang.github.io/2016/08/02/set-script-engine/复杂值参数编译内存布局.png">
 
 
 
@@ -520,9 +527,9 @@
 <figure class="highlight lua"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">location /image/ &#123;</span><br><span class="line">    set $key “$&#123;value&#125;test”</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>　　当解析到set命令相关的配置项时，就会调用set命令实现的回调函数：ngx_http_rewrite_set。在这个函数中就会将set命令及其参数进行编译成脚本。待请求匹配到对应的location并执行到NGX_HTTP_SERVER_REWRITE_PHASE或者NGX_HTTP_REWRITE_PHASE阶段的时候，就会执行编译成的脚本。函数ngx_http_rewrite_set的执行流程如下：<br>　　1、    检查set命令配置的合法性。具体做法就是检查set命令的第一个参数是否以”$“符号开头。在Nginx配置文件中，变量都是以”$“字符开头的，还有可选的用于将变量名括起来的大括号–”{}”。<br>　　2、    向Nginx内核添加这个外部变量。具体做法就是调用ngx_http_add_variable()这个函数，将变量名字加入到全局唯一的ngx_http_core_mian_conf_t结构体的variables_keys成员中。我们知道，ngx_http_core_mian_conf_t结构体的variables_keys成员会收集Nginx中出现的所有变量，不管是内部还是外部变量。另外，外部变量是允许赋值的，因此在调用ngx_http_add_variable()这个函数时，其变量属性必须是值可变的NGX_HTTP_VAR_CHANGEABLE。<br>　　3、    将外部变量索引化。具体做法就是调用ngx_http_get_variable_index()函数将变量加入到将变量名字加入到全局唯一的ngx_http_core_mian_conf_t结构体的variables成员中。因为从逻辑上来讲，既然定义了外部变量，那么一般来说都是会使用的，因此将其索引化，加快访问速度。<br>　　4、    对于不是5类特殊变量的外部变量，需要设置变量的get_handler回调函数和索引化下标。通常来说，内部变量的get_handler回调是必须要实现的，因为只有读取到这个变量的时候才会调用get_handler去获取内部变量值。但是外部变量是每次set都会立即赋值的，获取变量值的时候是直接从请求的r-&gt;variables数组中获取的，此时的get_handler用处不大，但是为什么又要设置外部变量的get_handler回调呢？因为可能有些模块会在set脚本执行前就使用到这个外部变量，此时外部变量值是不存在的，即缓存在r-&gt;variables中的值是空的，此时会调用get_handler求值。故外部变量的get_handler也不能为NULL，将其设置为ngx_http_variable_null_value，即设置为空字符串值。<br>　　5、    解析变量值。因为变量值可以是纯字符串的简单值参数，也可以是包含其他变量的复杂值参数。这两种值参数的编译过程是不同的，需要区别对待。本例中的便是属于复杂值参数类型的处理。ngx_http_rewrite_value函数的处理流程如下：<br>　　1）    判断值参数是复杂值参数还是简单值参数。具体做法就是遍历变量值参数字符串，看其中是否出现了”$“字符并统计其个数。<br>　　2）    如果值参数中”$“个数为0，表明是简单值参数。那么在lcf-&gt;codes数组中申请存放编译简单值参数的指令性结构体ngx_http_script_value_code_t所需的内存，并设置结构体的值。<br>　　3）如果值参数中”$“个数不为0，，表明是复杂值参数。这个也是上述实例将会走的处理流程。首先向lcf-&gt;codes数组中申请用于存放编译复杂值参数的指令性结构体ngx_http_script_complex_value_code_t所需内存，并设置相应的成员。然后根据复杂值参数中具体内容进行分类编译，具体就是按照值参数内容对内含变量和普通字符串进行按序编译。此部分流程可以结合下面的实例布局图进行理解。<br>　　6、    编译变量名。此时有两种情况，一、编译一个想通过set命令对其值进行更改内部变量；二、编译一个外部变量。<br>　　1）    编译一个想通过set命令对其值进行更改内部变量。如果一个内部变量，在Nginx的处理过程中希望可以通过set命令改变其值，则在实现该内部变量的时候，会实现set_handler回调方法，当执行到set命令的时候，解析变量值的时候会调用set_handler回调将配置文件中设置的值赋给内部变量。set_handler方法是有内部变量定义过的，因此其不需要索引下标也可以找到对应的变量。<br>　　2）    编译一个外部变量。向lcf-&gt;codes数组中申请用于存放编译变量名的指令性结构体所需要的空间。设置编译指令性结构体方法和索引化下标。<br>　　下面是上述配置项相关数据结构间的内存布局示意图：</p>
-
+<img src="/2016/08/02/set-script-engine/复杂值参数编译内存布局.png" title="图1 复杂值参数编译内存布局">
 <p>　　在上面的内存布局图中我们可以得到一下几个信息：<br>　　1、如果配置文件中出现了一个带有复杂变量值参数的set命令，则结构体ngx_http_script_complex_value_code_t意味着编译该条set命令的开始。<br>　　2、    在结构体ngx_http_script_complex_value_code_t中有两部分，第一部分是lengths数组，其中保存的是复杂值参数各个部分的值的长度，其中包含的编译值长度的结构体是在编译对应部分值的结构体时进行赋值，比如本例中的”${value}test”可以分为两部分，一个是内含变量”${value}”，一个是普通字符串”test”，则lengths数组中有两个元素，分别存储着用于获取内含变量”${value}”对应的值的长度，以及普通字符串”test”的长度的编译结构体。第二部分是函数指针ngx_http_script_code_pt，此时对应的实现为ngx_http_script_complex_value_code，这个函数的主要作用就是遍历lengths数组，计算实例中set赋值的变量的值的总长度，然后用这个长度为e-&gt;buf申请内存，保存解析后的变量值，并将e-&gt;pos指向e-&gt;buf.data，e-&gt;sp等于e-&gt;buf。<br>　　3、    在结构体ngx_http_script_complex_value_code_t之后，就是用于编译变量值的结构体，如上面所说，实例中的复杂值参数可以分为两部分，并按照先后顺序对这两部分进行分别编译，首先是编译获取内含变量”${value}”值的结构体–ngx_http_script_var_code_t，在这个结构体中包含了两部分，第一部分是ngx_http_script_code_pt，此时实现是ngx_http_script_copy_var_code，该函数用于结合第二部分的索引化下标获取变量值，并将此部分存储到e-&gt;buf中，如内存布局图中的2（1）所示；然后是编译普通字符串“test”的部分，对于普通字符串，脚本引擎的处理比较特殊，在编译普通字符串的结构体（ngx_http_script_copy_code_t）之后紧跟着普通字符串值本身，然后ngx_http_script_copy_code_t结构体中的ngx_http_script_code_pt的实现ngx_http_script_copy_code会将紧跟在后面的普通字符串值拷贝到e-&gt;buf中，与内含变量值组成目标变量的值，如内存布局图中的标号3（1）和3（2）所示。<br>　　4、编译完变量值之后是编译变量名，编译变量名涉及到的结构体是ngx_http_script_var_code_t，其中的ngx_http_script_code_pt对应的实现是ngx_http_script_set_var_code，这个函数会将e-&gt;sp（此时也为e-&gt;buf）中解析后的变量值拷贝r-&gt;variables数组中对应的下标处。到此编译便完成了。<br>　　在Nginx解析完配置项之后，上面实例中涉及到的set命令也已经编译成脚本了，存放在ngx_http_rewrite_loc_conf_t结构体中的codes数组中。那何时会执行编译好的脚本呢？当请求匹配了上面的”/ image”的location并执行到NGX_HTTP_SERVER_REWRITE_PHASE或者NGX_HTTP_REWRITE_PHASE阶段时，就会执行存放在codes数组中的脚本。具体对应到代码就是ngx_http_rewrite_handler()函数的处理，其执行流程如下：</p>
-<div align="center">  </div>
+<div align="center"> <img src="/2016/08/02/set-script-engine/ngx_http_rewrite_handler处理流程.png" title="图2 ngx_http_rewrite_handler处理流程"> </div>
 
 <p><strong>参考文章:</strong><br>　　1、《深入理解Nginx 模块开发与架构解析》</p>
 <p>** 本文作者： TitenWang **
@@ -545,6 +552,30 @@
     
     
 
+    
+      <div>
+        
+
+
+
+
+  
+
+
+
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>TitenWang</li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    
+    <a href="https://TitenWang.github.io/2016/08/02/set-script-engine/" title="实例分析set命令及相关脚本引擎">https://TitenWang.github.io/2016/08/02/set-script-engine/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
+</ul>
+
+      </div>
     
 
     <footer class="post-footer">
@@ -727,6 +758,16 @@
           
 
           
+             <div class="cc-license motion-element" itemprop="license">
+              
+              
+                
+              
+              
+              
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+             </div>
+          
 
           
           
@@ -839,13 +880,9 @@
 
 
 
+  
 
 
-  
-    
-    
-  
-  <script color="0,0,255" opacity="0.5" zindex="-1" count="99" src="/lib/canvas-nest/canvas-nest.min.js"></script>
 
 
 
@@ -870,6 +907,9 @@
 
   
   <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
 
   
   <script src="/lib/three/three.min.js"></script>

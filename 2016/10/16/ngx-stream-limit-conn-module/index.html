@@ -38,6 +38,10 @@
 
 
 
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
 
 
 
@@ -75,7 +79,7 @@
     sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
     back2top: true,
     back2top_sidebar: false,
-    fancybox: false,
+    fancybox: true,
     fastclick: false,
     lazyload: false,
     tabs: true,
@@ -104,10 +108,12 @@
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="ngx_stream_limit_conn_module模块在stream子系统中是用来限制某个ip的并发连接数的。">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://titenwang.github.io/2016/10/16/ngx-stream-limit-conn-module/limit_conn_zone指令解析函数.png">
 <meta property="og:updated_time" content="2017-04-17T17:28:05.224Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="ngx_stream_limit_conn_module模块解析">
 <meta name="twitter:description" content="ngx_stream_limit_conn_module模块在stream子系统中是用来限制某个ip的并发连接数的。">
+<meta name="twitter:image" content="https://titenwang.github.io/2016/10/16/ngx-stream-limit-conn-module/limit_conn_zone指令解析函数.png">
 
 
 
@@ -493,7 +499,7 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> <span class="keyword">ngx_command_t</span>  ngx_stream_limit_conn_commands[] = &#123;</span><br><span class="line"></span><br><span class="line">    &#123; ngx_string(<span class="string">"limit_conn_zone"</span>),</span><br><span class="line">      NGX_STREAM_MAIN_CONF|NGX_CONF_TAKE2,</span><br><span class="line">      ngx_stream_limit_conn_zone,</span><br><span class="line">      <span class="number">0</span>,</span><br><span class="line">      <span class="number">0</span>,</span><br><span class="line">      <span class="literal">NULL</span> &#125;,</span><br><span class="line"></span><br><span class="line">    &#123; ngx_string(<span class="string">"limit_conn"</span>),</span><br><span class="line">     NGX_STREAM_MAIN_CONF|NGX_STREAM_SRV_CONF|NGX_CONF_TAKE2,</span><br><span class="line">      ngx_stream_limit_conn,</span><br><span class="line">      NGX_STREAM_SRV_CONF_OFFSET,</span><br><span class="line">      <span class="number">0</span>,</span><br><span class="line">      <span class="literal">NULL</span> &#125;,</span><br><span class="line">	 ……</span><br><span class="line">    ngx_null_command</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 
 <p>　　先来看下limit_conn_zone命令，该命令主要是用来申请一块用于存储客户端ip并发连接数的共享内存。Nginx是如何解析和组织limit_conn_zone指令参数的？其解析函数ngx_stream_limit_conn_zone()的执行流程如下：</p>
-<div align="center">  </div>
+<div align="center"> <img src="/2016/10/16/ngx-stream-limit-conn-module/limit_conn_zone指令解析函数.png" title="图1 limit_conn_zone指令解析函数"> </div>
 　　从上面的流程中可以看出，一条limit_conn_zone命令在Nginx内部对应一块共享内存，而一块共享内存就会对应一个模块上下文，那这个模块上下文是用来做什么的呢？先来看下它的定义：
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">    <span class="keyword">ngx_rbtree_t</span>              *rbtree;</span><br><span class="line">&#125; <span class="keyword">ngx_stream_limit_conn_ctx_t</span>;</span><br></pre></td></tr></table></figure>
 
@@ -539,6 +545,30 @@
     
     
 
+    
+      <div>
+        
+
+
+
+
+  
+
+
+
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>TitenWang</li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    
+    <a href="https://TitenWang.github.io/2016/10/16/ngx-stream-limit-conn-module/" title="ngx_stream_limit_conn_module模块解析">https://TitenWang.github.io/2016/10/16/ngx-stream-limit-conn-module/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
+</ul>
+
+      </div>
     
 
     <footer class="post-footer">
@@ -725,6 +755,16 @@
           
 
           
+             <div class="cc-license motion-element" itemprop="license">
+              
+              
+                
+              
+              
+              
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+             </div>
+          
 
           
           
@@ -837,13 +877,9 @@
 
 
 
+  
 
 
-  
-    
-    
-  
-  <script color="0,0,255" opacity="0.5" zindex="-1" count="99" src="/lib/canvas-nest/canvas-nest.min.js"></script>
 
 
 
@@ -868,6 +904,9 @@
 
   
   <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
 
   
   <script src="/lib/three/three.min.js"></script>

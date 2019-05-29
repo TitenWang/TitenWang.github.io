@@ -38,6 +38,10 @@
 
 
 
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
 
 
 
@@ -75,7 +79,7 @@
     sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
     back2top: true,
     back2top_sidebar: false,
-    fancybox: false,
+    fancybox: true,
     fastclick: false,
     lazyload: false,
     tabs: true,
@@ -104,10 +108,12 @@
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="epoll是Linux内核为处理大批量文件描述符而设计的IO多路复用机制，它能显著提高程序在存在大量并发连接而只有少部分活跃连接情况下的系统CPU利用率。epoll之所以可以做到如此高的效率是因为它在获取就绪事件的时候，并不会遍历所有被监听的文件描述符集，而只会遍历那些被设备IO事件异步唤醒而加入就绪链表的文件描述符集。">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://titenwang.github.io/2017/10/05/implementation-of-epoll/epoll核心数据结构关系.png">
 <meta property="og:updated_time" content="2017-10-07T03:44:41.354Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="epoll的原理和实现">
 <meta name="twitter:description" content="epoll是Linux内核为处理大批量文件描述符而设计的IO多路复用机制，它能显著提高程序在存在大量并发连接而只有少部分活跃连接情况下的系统CPU利用率。epoll之所以可以做到如此高的效率是因为它在获取就绪事件的时候，并不会遍历所有被监听的文件描述符集，而只会遍历那些被设备IO事件异步唤醒而加入就绪链表的文件描述符集。">
+<meta name="twitter:image" content="https://titenwang.github.io/2017/10/05/implementation-of-epoll/epoll核心数据结构关系.png">
 
 
 
@@ -487,7 +493,7 @@
 
       
         <p>　　epoll是Linux内核为处理大批量文件描述符而设计的IO多路复用机制，它能显著提高程序在存在大量并发连接而只有少部分活跃连接情况下的系统CPU利用率。epoll之所以可以做到如此高的效率是因为它在获取就绪事件的时候，并不会遍历所有被监听的文件描述符集，而只会遍历那些被设备IO事件异步唤醒而加入就绪链表的文件描述符集。<a id="more"></a><br>　　epoll机制提供了三个系统调用给用户态应用程序，用以管理感兴趣的事件，三个系统调用分别为epoll_create()、epoll_ctl()和epoll_wait()。另外还暴露了一个struct和一个union，分别为struct epoll_event和union epoll_data。而在epoll自身内部，还涉及了多个重要的数据结构，分别为struct eventpoll、struct epitem、struct eppoll_entry、struct ep_pqueue、struct poll_table_struct等。核心数据结构之间的关系如下图所示：</p>
-<div align="center">  </div>
+<div align="center"> <img src="/2017/10/05/implementation-of-epoll/epoll核心数据结构关系.png" title="图1 epoll核心数据结构关系"> </div>
 　　下面将从epoll机制提供给用户态的接口作为切入点，围绕核心数据结构，详细描述epoll的原理及其实现。
 　　1、epoll_create()
 　　epoll_create系统调用，其原型如下：
@@ -544,6 +550,30 @@
     
     
 
+    
+      <div>
+        
+
+
+
+
+  
+
+
+
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>TitenWang</li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    
+    <a href="https://TitenWang.github.io/2017/10/05/implementation-of-epoll/" title="epoll的原理和实现">https://TitenWang.github.io/2017/10/05/implementation-of-epoll/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
+</ul>
+
+      </div>
     
 
     <footer class="post-footer">
@@ -734,6 +764,16 @@
           
 
           
+             <div class="cc-license motion-element" itemprop="license">
+              
+              
+                
+              
+              
+              
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+             </div>
+          
 
           
           
@@ -846,13 +886,9 @@
 
 
 
+  
 
 
-  
-    
-    
-  
-  <script color="0,0,255" opacity="0.5" zindex="-1" count="99" src="/lib/canvas-nest/canvas-nest.min.js"></script>
 
 
 
@@ -877,6 +913,9 @@
 
   
   <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
 
   
   <script src="/lib/three/three.min.js"></script>

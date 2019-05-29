@@ -38,6 +38,10 @@
 
 
 
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
 
 
 
@@ -75,7 +79,7 @@
     sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
     back2top: true,
     back2top_sidebar: false,
-    fancybox: false,
+    fancybox: true,
     fastclick: false,
     lazyload: false,
     tabs: true,
@@ -104,10 +108,16 @@
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="本篇文档主要描述了网络数据包在二层的接收流程，主要包括以下三个部分：　　1）、82599网卡和数据包接收相关的内容；　　2）、ixgbe网卡驱动数据包接收相关的配置；　　3）、ixgbe网卡驱动napi接口的处理。">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/传统描述符格式.png">
+<meta property="og:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/高级描述符格式-读格式.png">
+<meta property="og:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/高级描述符格式-回写格式.png">
+<meta property="og:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/报文接收描述符环形队列结构.png">
+<meta property="og:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/NAPI调度流程.png">
 <meta property="og:updated_time" content="2017-05-01T06:00:20.386Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="基于82599网卡的二层网络数据包接收">
 <meta name="twitter:description" content="本篇文档主要描述了网络数据包在二层的接收流程，主要包括以下三个部分：　　1）、82599网卡和数据包接收相关的内容；　　2）、ixgbe网卡驱动数据包接收相关的配置；　　3）、ixgbe网卡驱动napi接口的处理。">
+<meta name="twitter:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/传统描述符格式.png">
 
 
 
@@ -489,22 +499,22 @@
         <p>　　本篇文档主要描述了网络数据包在二层的接收流程，主要包括以下三个部分：<br>　　1）、82599网卡和数据包接收相关的内容；<br>　　2）、ixgbe网卡驱动数据包接收相关的配置；<br>　　3）、ixgbe网卡驱动napi接口的处理。<a id="more"></a></p>
 <h2 id="82599网卡和数据包接收相关的内容"><a href="#82599网卡和数据包接收相关的内容" class="headerlink" title="82599网卡和数据包接收相关的内容"></a>82599网卡和数据包接收相关的内容</h2><p>　　这一部分要介绍的是82599网卡中和数据包接收相关的内容。网络报文接收流程所涉及的内容很多，如报文过滤、mac层卸载、报文接收描述符、校验和卸载以及分离报文有效载荷和头部等，由于篇幅原因，这里只介绍了报文接收描述符相关的内容，其他内容会在后续描述中进行穿插。　　<br>　　说到网卡报文接收，就必须得说到报文接收描述符，因为报文接收描述符承载了报文从网卡流入到主存的过程。对于网卡硬件而言，当网卡收到网络报文的时候，会往报文接收描述符中指定的地址写入报文数据，而网卡驱动则会从报文接收描述符中指定的地址读取报文，并送往上层协议栈处理。<br>　　除了上面说到的存放报文的内存地址，报文接收描述符中还有用于存储报文信息的域。对于82599网卡而言，其支持两种格式的报文接收描述符，即传统格式和高级格式。虽然有两种不同格式的报文接收描述符，但是两种格式的报文接收描述符所占用的内存大小是一样的（目前为16字节），只是对这块内存使用有所不同。对于两种不同格式的报文接收描述符，可以在网卡驱动初始化的时候进行配置，通过设置网卡的SRRCTL寄存器的DRSCTYPE域进而选择使用某种格式的报文接收描述符。在初始化阶段，网卡驱动会申请报文描述符，并填充描述符中相关的域，然后告诉网卡该描述符可用，后续网卡接收到报文就可以用报文描述符来存储报文相关的信息，然后网卡将报文描述符回写给网卡驱动，网卡驱动从中获取所需要信息，并交由上层进行处理。</p>
 <h3 id="传统格式报文接收描述符"><a href="#传统格式报文接收描述符" class="headerlink" title="传统格式报文接收描述符"></a>传统格式报文接收描述符</h3><p>　　先来看下82599网卡中对传统格式报文接收描述符的定义，如下：</p>
-<div align="center">  </div>
+<div align="center"> <img src="/2017/04/16/intel-82599-receive-packet/传统描述符格式.png" title="图1 传统格式报文接收描述符"> </div>
 　　从上面的图中可以看到，报文接收描述符的低八个字节存放的是用于存放报文的内存起始地址，而高八个字节存放的是网卡对报文进行预处理得到的一些信息，如报文长度，VLAN　Tag以及校验和信息等，这部分信息会在网卡回写报文描述符给驱动的时候存到描述符对应的域中。对于一些比较固定的功能，比如报文相关校验和计算，VLAN头的解析等功能都可以卸载到网卡，由网卡来操作，这样可以加速报文的处理。
 ### 高级格式报文接收描述符
 　　相比于传统格式，高级格式的报文接收描述符可以用来支持更多的功能特性，如分离报文有效负载和报文头等。高级格式的报文描述符由于需要支持更多的功能特性，所以分为了读格式和回写格式。
 　　先来看下82599网卡中读格式的定义，如下图：
-<div align="center">  </div>
+<div align="center"> <img src="/2017/04/16/intel-82599-receive-packet/高级描述符格式-读格式.png" title="图２ 高级格式报文接收描述符-读格式"> </div>
 　　从图中可以看到，读格式的报文描述符中主要有四个部分，分别是报文缓冲区地址、A0位、头缓冲区地址和DD位。对于报文缓冲区地址和头缓冲区地址，顾名思义，存储的就是用来存放报文有效载荷和头部的缓冲区首地址。而对于DD位的作用，网卡驱动可以通过读取该位的值来判断该描述符对应的缓冲区中是否已经存放了网卡接收的报文。
 　　再来看下82599网卡中回写格式的定义，如下图：
-<div align="center">  </div>
+<div align="center"> <img src="/2017/04/16/intel-82599-receive-packet/高级描述符格式-回写格式.png" title="图３ 高级格式报文接收描述符-回写格式"> </div>
 　　回写代表的就是网卡往描述符对应的缓冲区中存放了报文数据，并将报文相关的元信息写入到描述符对应的域中，并设置DD位，以告诉网卡驱动该描述已经存放了报文信息。回写格式中涉及到很多和报文相关的信息，如接收报文时所使用的RSS类型，报文长度和报文接收状态等信息。这里不一一介绍，详细可以参考82599的datasheet。
 ### 报文接收描述符环形队列
 　　上面说到，报文接收描述符承载了报文从网卡流入到主存的过程，是网卡驱动和网卡都会操作的对象，那么自然而然会有以下几个疑问：
 　　1）、报文接收描述符是以何种组织形式在网卡驱动和网卡之间进行传递的？
 　　2）、网卡驱动怎么通知网卡报文接收描述符可用的？
 　　在报文接收流程中，报文接收描述符是通过环形队列来管理的，当然这个环形队列是逻辑上的，队列中的描述符在内存上是连续的。网卡或者网卡驱动在进行操作的时候，如果发现已经到达了队列的末尾，那么下次操作又会从队列头部开始，从而实现环形的操作逻辑。报文接收描述符环形队列的结构体如下：
-<div align="center">  </div>
+<div align="center"> <img src="/2017/04/16/intel-82599-receive-packet/报文接收描述符环形队列结构.png" title="图4 报文接收描述符环形队列结构"> </div>
 　　对于第一和第二个问题，其中也已经在上面的描述符环形队列图中有体现。在对问题进行回答之前先要了解下82599网卡中和报文接收描述符环形队列相关的几个寄存器。
 　　1）、RDBA寄存器。这个寄存器存放了报文接收描述符环形队列的起始地址，也就是上图中Base指向的地址。
 　　2）、RDLEN寄存器。这个寄存器存放了报文接收描述符环形队列的长度，也就是接收描述符环形队列所占用的字节数，对应上图中的Size。
@@ -551,7 +561,7 @@
 <figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> __<span class="function">latent_entropy <span class="keyword">void</span> <span class="title">net_rx_action</span><span class="params">(struct softirq_action *h)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">softnet_data</span> *<span class="title">sd</span> = <span class="title">this_cpu_ptr</span>(&amp;<span class="title">softnet_data</span>);</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> time_limit = jiffies + <span class="number">2</span>;</span><br><span class="line">	<span class="keyword">int</span> budget = netdev_budget;</span><br><span class="line">	LIST_HEAD(<span class="built_in">list</span>);</span><br><span class="line">	LIST_HEAD(repoll);</span><br><span class="line"></span><br><span class="line">	local_irq_disable();</span><br><span class="line">	list_splice_init(&amp;sd-&gt;poll_list, &amp;<span class="built_in">list</span>);</span><br><span class="line">	local_irq_enable();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (;;) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">napi_struct</span> *<span class="title">n</span>;</span></span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (list_empty(&amp;<span class="built_in">list</span>)) &#123;</span><br><span class="line">			<span class="keyword">if</span> (!sd_has_rps_ipi_waiting(sd) &amp;&amp; list_empty(&amp;repoll))</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		n = list_first_entry(&amp;<span class="built_in">list</span>, struct napi_struct, poll_list);</span><br><span class="line">		budget -= napi_poll(n, &amp;repoll);</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* If softirq window is exhausted then punt.</span></span><br><span class="line"><span class="comment">		 * Allow this to run for 2 jiffies since which will allow</span></span><br><span class="line"><span class="comment">		 * an average latency of 1.5/HZ.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (unlikely(budget &lt;= <span class="number">0</span> ||</span><br><span class="line">			     time_after_eq(jiffies, time_limit))) &#123;</span><br><span class="line">			sd-&gt;time_squeeze++;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	__kfree_skb_flush();</span><br><span class="line">	local_irq_disable();</span><br><span class="line"></span><br><span class="line">	list_splice_tail_init(&amp;sd-&gt;poll_list, &amp;<span class="built_in">list</span>);</span><br><span class="line">	list_splice_tail(&amp;repoll, &amp;<span class="built_in">list</span>);</span><br><span class="line">	list_splice(&amp;<span class="built_in">list</span>, &amp;sd-&gt;poll_list);</span><br><span class="line">	<span class="keyword">if</span> (!list_empty(&amp;sd-&gt;poll_list))</span><br><span class="line">		__raise_softirq_irqoff(NET_RX_SOFTIRQ);</span><br><span class="line"></span><br><span class="line">	net_rps_action_and_irq_enable(sd);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
 <p>　　上面说到过，在下半部的软中断处理函数中会调用设备注册的回调函数poll进行收包处理，而ixgbe驱动中对应的轮询回调函数就是ixgbe_poll()。在这个函数中会遍历NAPI对象关联的中断向量中的所有RX队列，将收到的每一个报文通过调用函数__netif_receive_skb()送往上层协议栈进行处理，具体处理细节可以参考驱动实现。<br>　　通过上面对ixgbe驱动中使用NAPI接口的描述，我们可以总结出NAPI接口的数据包接收流程如下：</p>
-<div align="center">  </div>
+<div align="center"> <img src="/2017/04/16/intel-82599-receive-packet/NAPI调度流程.png" title="图5 NAPI调度流程"> </div>
 　　注：上面的流程图中NAPI假设上层会关闭和打开的硬中断
 
 <p><strong>参考：</strong><br>1、<a href="http://www.intel.com/content/www/us/en/embedded/products/networking/82599-10-gbe-controller-datasheet.html" target="_blank" rel="noopener">http://www.intel.com/content/www/us/en/embedded/products/networking/82599-10-gbe-controller-datasheet.html</a></p>
@@ -575,6 +585,30 @@
     
     
 
+    
+      <div>
+        
+
+
+
+
+  
+
+
+
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>TitenWang</li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    
+    <a href="https://TitenWang.github.io/2017/04/16/intel-82599-receive-packet/" title="基于82599网卡的二层网络数据包接收">https://TitenWang.github.io/2017/04/16/intel-82599-receive-packet/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
+</ul>
+
+      </div>
     
 
     <footer class="post-footer">
@@ -774,6 +808,16 @@
           
 
           
+             <div class="cc-license motion-element" itemprop="license">
+              
+              
+                
+              
+              
+              
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+             </div>
+          
 
           
           
@@ -903,13 +947,9 @@
 
 
 
+  
 
 
-  
-    
-    
-  
-  <script color="0,0,255" opacity="0.5" zindex="-1" count="99" src="/lib/canvas-nest/canvas-nest.min.js"></script>
 
 
 
@@ -934,6 +974,9 @@
 
   
   <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
 
   
   <script src="/lib/three/three.min.js"></script>

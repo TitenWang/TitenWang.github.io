@@ -38,6 +38,10 @@
 
 
 
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
 
 
 
@@ -75,7 +79,7 @@
     sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
     back2top: true,
     back2top_sidebar: false,
-    fancybox: false,
+    fancybox: true,
     fastclick: false,
     lazyload: false,
     tabs: true,
@@ -104,10 +108,16 @@
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="在生产环境中，Nginx一般采用的是一个master进程，多个worker进程的模型，这样设计有一个好处，就是服务更加健壮，但是另一方面，如果一个请求分布在不同的进程上，当进程间需要互相配合才能完成请求的处理时，进程间通信的困难就凸显出来，虽然已经有许多进程间通信的方法，但是那些都只适合简单语意的场景，如果进程间需要交互复杂对象，如树、图等，则需要新的进程间通信方式，那就是今天要讲述的slab">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://titenwang.github.io/2016/08/02/slab-shared-memory/slab内存布局.png">
+<meta property="og:image" content="https://titenwang.github.io/2016/08/02/slab-shared-memory/初始状态.png">
+<meta property="og:image" content="https://titenwang.github.io/2016/08/02/slab-shared-memory/申请一页状态.png">
+<meta property="og:image" content="https://titenwang.github.io/2016/08/02/slab-shared-memory/页布局和bitmap值.png">
+<meta property="og:image" content="https://titenwang.github.io/2016/08/02/slab-shared-memory/释放状态图.png">
 <meta property="og:updated_time" content="2017-04-17T17:27:32.611Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="slab共享内存使用及其实现原理">
 <meta name="twitter:description" content="在生产环境中，Nginx一般采用的是一个master进程，多个worker进程的模型，这样设计有一个好处，就是服务更加健壮，但是另一方面，如果一个请求分布在不同的进程上，当进程间需要互相配合才能完成请求的处理时，进程间通信的困难就凸显出来，虽然已经有许多进程间通信的方法，但是那些都只适合简单语意的场景，如果进程间需要交互复杂对象，如树、图等，则需要新的进程间通信方式，那就是今天要讲述的slab">
+<meta name="twitter:image" content="https://titenwang.github.io/2016/08/02/slab-shared-memory/slab内存布局.png">
 
 
 
@@ -581,7 +591,7 @@
 <td align="center"></td>
 </tr>
 <tr>
-<td><div align="center">  </div></td>
+<td><div align="center"> <img src="/2016/08/02/slab-shared-memory/slab内存布局.png" title="图1 slab内存布局"> </div></td>
 <td align="center"></td>
 <td align="center"></td>
 <td align="center"></td>
@@ -641,7 +651,7 @@
 <td align="center"></td>
 </tr>
 <tr>
-<td><div align="center">  </div></td>
+<td><div align="center"> <img src="/2016/08/02/slab-shared-memory/初始状态.png" title="图2 初始状态"> </div></td>
 <td align="center"></td>
 <td align="center"></td>
 <td align="center"></td>
@@ -653,7 +663,7 @@
 <td align="center"></td>
 </tr>
 <tr>
-<td><div align="center">  </div></td>
+<td><div align="center"> <img src="/2016/08/02/slab-shared-memory/申请一页状态.png" title="图3 申请一页状态"> </div></td>
 <td align="center"></td>
 <td align="center"></td>
 <td align="center"></td>
@@ -709,7 +719,7 @@
 <td align="center"></td>
 </tr>
 <tr>
-<td align="center"><div align="center">  </div></td>
+<td align="center"><div align="center"> <img src="/2016/08/02/slab-shared-memory/页布局和bitmap值.png" title="图4 页布局和bitmap值"> </div></td>
 <td align="center"></td>
 <td align="center"></td>
 </tr>
@@ -729,7 +739,7 @@
 <td align="center"></td>
 </tr>
 <tr>
-<td align="center"><div align="center">  </div></td>
+<td align="center"><div align="center"> <img src="/2016/08/02/slab-shared-memory/释放状态图.png" title="图5 释放状态图"> </div></td>
 <td align="center"></td>
 <td align="center"></td>
 </tr>
@@ -760,6 +770,30 @@
     
     
 
+    
+      <div>
+        
+
+
+
+
+  
+
+
+
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>TitenWang</li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    
+    <a href="https://TitenWang.github.io/2016/08/02/slab-shared-memory/" title="slab共享内存使用及其实现原理">https://TitenWang.github.io/2016/08/02/slab-shared-memory/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
+</ul>
+
+      </div>
     
 
     <footer class="post-footer">
@@ -946,6 +980,16 @@
           
 
           
+             <div class="cc-license motion-element" itemprop="license">
+              
+              
+                
+              
+              
+              
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+             </div>
+          
 
           
           
@@ -1058,13 +1102,9 @@
 
 
 
+  
 
 
-  
-    
-    
-  
-  <script color="0,0,255" opacity="0.5" zindex="-1" count="99" src="/lib/canvas-nest/canvas-nest.min.js"></script>
 
 
 
@@ -1089,6 +1129,9 @@
 
   
   <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
 
   
   <script src="/lib/three/three.min.js"></script>

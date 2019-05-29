@@ -38,6 +38,10 @@
 
 
 
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
 
 
 
@@ -75,7 +79,7 @@
     sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
     back2top: true,
     back2top_sidebar: false,
-    fancybox: false,
+    fancybox: true,
     fastclick: false,
     lazyload: false,
     tabs: true,
@@ -104,10 +108,13 @@
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="在生产环境中，Nginx一般采用的是一个master进程，多个worker进程的模型，其中master进程不需要处理网络事件，它不负责业务的执行，只是通过管理worker进程来实现重启服务、平滑升级、更换日志文件、配置文件实时生效等功能，而worker进程则是用来提供服务，如静态文件服务、反向代理等功能。那么Nginx中是如何实现master的重启服务、平滑升级、更换日志文件以及配置文件实时生">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://titenwang.github.io/2016/08/03/signal-control/master进程工作循环.png">
+<meta property="og:image" content="https://titenwang.github.io/2016/08/03/signal-control/worker进程工作循环.png">
 <meta property="og:updated_time" content="2017-04-17T17:27:39.349Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Nginx信号控制">
 <meta name="twitter:description" content="在生产环境中，Nginx一般采用的是一个master进程，多个worker进程的模型，其中master进程不需要处理网络事件，它不负责业务的执行，只是通过管理worker进程来实现重启服务、平滑升级、更换日志文件、配置文件实时生效等功能，而worker进程则是用来提供服务，如静态文件服务、反向代理等功能。那么Nginx中是如何实现master的重启服务、平滑升级、更换日志文件以及配置文件实时生">
+<meta name="twitter:image" content="https://titenwang.github.io/2016/08/03/signal-control/master进程工作循环.png">
 
 
 
@@ -551,7 +558,7 @@
 <td align="center"></td>
 </tr>
 <tr>
-<td align="center"><div align="center">  </div></td>
+<td align="center"><div align="center"> <img src="/2016/08/03/signal-control/master进程工作循环.png" title="图2 master进程工作循环"> </div></td>
 <td align="center"></td>
 <td align="center"></td>
 </tr>
@@ -590,7 +597,7 @@
 <td align="center"></td>
 </tr>
 <tr>
-<td align="center"><div align="center">  </div></td>
+<td align="center"><div align="center"> <img src="/2016/08/03/signal-control/worker进程工作循环.png" title="图2 worker进程工作循环"> </div></td>
 <td align="center"></td>
 <td align="center"></td>
 </tr>
@@ -621,6 +628,30 @@
     
     
 
+    
+      <div>
+        
+
+
+
+
+  
+
+
+
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>TitenWang</li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    
+    <a href="https://TitenWang.github.io/2016/08/03/signal-control/" title="Nginx信号控制">https://TitenWang.github.io/2016/08/03/signal-control/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
+</ul>
+
+      </div>
     
 
     <footer class="post-footer">
@@ -807,6 +838,16 @@
           
 
           
+             <div class="cc-license motion-element" itemprop="license">
+              
+              
+                
+              
+              
+              
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+             </div>
+          
 
           
           
@@ -919,13 +960,9 @@
 
 
 
+  
 
 
-  
-    
-    
-  
-  <script color="0,0,255" opacity="0.5" zindex="-1" count="99" src="/lib/canvas-nest/canvas-nest.min.js"></script>
 
 
 
@@ -950,6 +987,9 @@
 
   
   <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
 
   
   <script src="/lib/three/three.min.js"></script>

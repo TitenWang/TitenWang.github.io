@@ -38,6 +38,10 @@
 
 
 
+  
+  
+  <link rel="stylesheet" href="/lib/fancybox/source/jquery.fancybox.css">
+
 
 
 
@@ -75,7 +79,7 @@
     sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
     back2top: true,
     back2top_sidebar: false,
-    fancybox: false,
+    fancybox: true,
     fastclick: false,
     lazyload: false,
     tabs: true,
@@ -104,10 +108,12 @@
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="TCP协议是面向连接的、可靠的、基于字节流的传输层协议。那使用tcp协议进行通信的两端是如何进行通信的？使用tcp协议进行通信的两端是通过套接字（scoket）来建立连接的。套接字socket主要有两种类型，阻塞和非阻塞。通常为了防止进程阻塞以及避免cpu被长时间占用，客户端和服务端一般都会采用非阻塞socket进行通信，其中Nginx就是一个典型的例子。下面我们就以Nginx的upstrea">
 <meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://titenwang.github.io/2016/10/23/client-nonblocking-connect/ngx_event_connect_peer.png">
 <meta property="og:updated_time" content="2017-04-17T17:27:20.661Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="客户端非阻塞socket建链流程">
 <meta name="twitter:description" content="TCP协议是面向连接的、可靠的、基于字节流的传输层协议。那使用tcp协议进行通信的两端是如何进行通信的？使用tcp协议进行通信的两端是通过套接字（scoket）来建立连接的。套接字socket主要有两种类型，阻塞和非阻塞。通常为了防止进程阻塞以及避免cpu被长时间占用，客户端和服务端一般都会采用非阻塞socket进行通信，其中Nginx就是一个典型的例子。下面我们就以Nginx的upstrea">
+<meta name="twitter:image" content="https://titenwang.github.io/2016/10/23/client-nonblocking-connect/ngx_event_connect_peer.png">
 
 
 
@@ -487,7 +493,7 @@
 
       
         <p>　　TCP协议是面向连接的、可靠的、基于字节流的传输层协议。那使用tcp协议进行通信的两端是如何进行通信的？使用tcp协议进行通信的两端是通过套接字（scoket）来建立连接的。套接字socket主要有两种类型，阻塞和非阻塞。通常为了防止进程阻塞以及避免cpu被长时间占用，客户端和服务端一般都会采用非阻塞socket进行通信，其中Nginx就是一个典型的例子。下面我们就以Nginx的upstream机制所涉及的与后端服务器建链的流程来总结下使用非阻塞socket的客户端建链流程。<a id="more"></a><br>　　先来看下Nginx的upstream机制所涉及的与后端服务器建链的流程，其相关函数为ngx_event_connect_peer，该函数的执行流程如下：</p>
-<div align="center">  </div>
+<div align="center"> <img src="/2016/10/23/client-nonblocking-connect/ngx_event_connect_peer.png" title="图1 ngx_event_connect_peer"> </div>
 　　在建链流程图中调用connect尝试与后端服务器建链那一步，如果connect返回0表明Nginx与后端服务器已经建立了连接，但是如果connect返回-1并且错误码是EINPROGRESS表明后端服务器由于某些原因暂时没有完成连接的建立，后续建立连接后会通知Nginx，此时Nginx的做法是，将连接对应的读写事件加入到了epoll中监控，并将写事件加入到定时器中，因为Nginx与后端服务器建立连接是有时间限制的，所以后续如果超时执行了写事件回调函数，则表示建链因超时而失败了。如果不是因为超时而是连接上有写事件发生调用事件回调函数，则会以SO_ERROR为参数调用setsockopt函数，然后根据错误码来判断Nginx是否与后端服务器建立了连接，这部分见在调用ngx_event_connect_peer函数的ngx_stream_proxy_connect函数中设置的读写事件回调函数ngx_stream_proxy_connect_handler。
 　　从上面Nginx的处理流程中我们可以看到非阻塞socket客户端建链的一般步骤：
 　　1、    调用socket接口获取一个socket描述符。
@@ -524,6 +530,30 @@
     
     
 
+    
+      <div>
+        
+
+
+
+
+  
+
+
+
+<ul class="post-copyright">
+  <li class="post-copyright-author">
+    <strong>本文作者： </strong>TitenWang</li>
+  <li class="post-copyright-link">
+    <strong>本文链接：</strong>
+    
+    <a href="https://TitenWang.github.io/2016/10/23/client-nonblocking-connect/" title="客户端非阻塞socket建链流程">https://TitenWang.github.io/2016/10/23/client-nonblocking-connect/</a>
+  </li>
+  <li class="post-copyright-license">
+    <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
+</ul>
+
+      </div>
     
 
     <footer class="post-footer">
@@ -712,6 +742,16 @@
           
 
           
+             <div class="cc-license motion-element" itemprop="license">
+              
+              
+                
+              
+              
+              
+              <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" class="cc-opacity" rel="noopener" target="_blank"><img src="/images/cc-by-nc-sa.svg" alt="Creative Commons"></a>
+             </div>
+          
 
           
           
@@ -824,13 +864,9 @@
 
 
 
+  
 
 
-  
-    
-    
-  
-  <script color="0,0,255" opacity="0.5" zindex="-1" count="99" src="/lib/canvas-nest/canvas-nest.min.js"></script>
 
 
 
@@ -855,6 +891,9 @@
 
   
   <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/fancybox/source/jquery.fancybox.pack.js"></script>
 
   
   <script src="/lib/three/three.min.js"></script>
