@@ -1,0 +1,1312 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="rps的全称是Receive Package Steering，rfs的全称是Receive Flow Steering，rps和rfs是google的工程师提供的两个补丁，用以在软件层面实现报文在多个cpu之间的负载均衡以及提高报文处理的缓存命中率。rps和rfs出现的原因主要有以下两个：　　1、    对于多队列网卡，网卡硬件接收队列与cpu核数在数量上不匹配导致报文在cpu之间分配不均。">
+<meta name="keywords" content="网络编程,eBPF,协议栈">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Linux中rps&#x2F;rfs的原理及实现">
+<meta property="og:url" content="https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/index.html">
+<meta property="og:site_name" content="我心知度">
+<meta property="og:description" content="rps的全称是Receive Package Steering，rfs的全称是Receive Flow Steering，rps和rfs是google的工程师提供的两个补丁，用以在软件层面实现报文在多个cpu之间的负载均衡以及提高报文处理的缓存命中率。rps和rfs出现的原因主要有以下两个：　　1、    对于多队列网卡，网卡硬件接收队列与cpu核数在数量上不匹配导致报文在cpu之间分配不均。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2017-07-10T16:24:02.249Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Linux中rps&#x2F;rfs的原理及实现">
+<meta name="twitter:description" content="rps的全称是Receive Package Steering，rfs的全称是Receive Flow Steering，rps和rfs是google的工程师提供的两个补丁，用以在软件层面实现报文在多个cpu之间的负载均衡以及提高报文处理的缓存命中率。rps和rfs出现的原因主要有以下两个：　　1、    对于多队列网卡，网卡硬件接收队列与cpu核数在数量上不匹配导致报文在cpu之间分配不均。">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>Linux中rps/rfs的原理及实现 | 我心知度</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">我心知度</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">TitenWang's Blog</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-categories" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="TitenWang">
+      <meta itemprop="description" content="The Next Maigc">
+      <meta itemprop="image" content="/images/book.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="我心知度">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">Linux中rps/rfs的原理及实现
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2017-07-09 16:25:50" itemprop="dateCreated datePublished" datetime="2017-07-09T16:25:50+08:00">2017-07-09</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2017-07-11 00:24:02" itemprop="dateModified" datetime="2017-07-11T00:24:02+08:00">2017-07-11</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/eBPF/" itemprop="url" rel="index"><span itemprop="name">eBPF</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>　　rps的全称是Receive Package Steering，rfs的全称是Receive Flow Steering，rps和rfs是google的工程师提供的两个补丁，用以在软件层面实现报文在多个cpu之间的负载均衡以及提高报文处理的缓存命中率。rps和rfs出现的原因主要有以下两个：<br>　　1、    对于多队列网卡，网卡硬件接收队列与cpu核数在数量上不匹配导致报文在cpu之间分配不均。<br>　　2、    对于单队列网卡，rps和rfs可以在软件层面将报文平均分配到多个cpu上。<a id="more"></a><br>　　关于rps和rfs更为详细的介绍，可以参考LWN上面的文章，链接于文档末尾参考部分给出。下面分别介绍rps和rfs的原理及其具体实现。</p>
+<h2 id="rps"><a href="#rps" class="headerlink" title="rps"></a>rps</h2><p>　　rps，即Receive Package Steering，其原理是单纯地以软件方式实现接收的报文在cpu之间平均分配，即利用报文的hash值找到匹配的cpu，然后将报文送至该cpu对应的backlog队列中进行下一步的处理。上面提到的报文hash值，可以是由网卡计算得到，也可以是由软件计算得到，具体的计算也因报文协议不同而有所差异，以tcp报文为例，tcp报文的hash值是根据四元组信息，即源ip、源端口、目的ip和目的端口进行hash计算得到的。</p>
+<h3 id="rps中的cpu位图"><a href="#rps中的cpu位图" class="headerlink" title="rps中的cpu位图"></a>rps中的cpu位图</h3><p>　　上面提到，rps是利用报文的hash值找到对应的cpu，然后将报文送至该cpu的backlog队列来实现报文在多个cpu之间的负载均衡的。所以首先需要知道哪些cpu核会参与报文的分发处理。Linux是通过配置文件的方式指定哪些cpu核参与到报文的分发处理，配置文件存放的路径是：/sys/class/net/(dev)/queues/rx-(n)/rps_cpus，我们以单网卡单队列、8核cpu为例，cpu核号从0开始算起，假设我们用第7个核来处理网卡中断，我们执行如下命令设置第0、2、4、6个cpu核参与到网卡的分发处理中来：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span> echo 55 &gt; /sys/class/net/eth0/queues/rx-0/rps_cpus</span><br></pre></td></tr></table></figure>
+
+<p>　　当我们设置好该配置文件之后，内核就会去获取该配置文件的内容，然后根据解析的结果生成一个用于参与报文分发处理的cpu列表（实际实现是一个柔性数组），这样当收到报文之后，就可以建立起hash-cpu的映射关系了。<br>　　在看解析函数的实现之前，需要先对相应的数据结构有所了解。从上面的配置文件中我们可以看到配置文件是放置在网卡的接口队列下的，其实对应的内核实现中也是将解析的结果放置在网卡的接收队列实例中的，其定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">netdev_rx_queue</span> &#123;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_RPS</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rps_map</span> __<span class="title">rcu</span>		*<span class="title">rps_map</span>;</span></span><br><span class="line">	……</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	……</span><br><span class="line">&#125; ____cacheline_aligned_in_smp;</span><br></pre></td></tr></table></figure>
+
+<p>　　用来存放解析结果的就是网卡硬件接收队列实例的rps_map成员，其类型定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rps_map</span> &#123;</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> len;  <span class="comment">// cpus柔性数组的长度</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span> <span class="title">rcu</span>;</span></span><br><span class="line">	u16 cpus[<span class="number">0</span>];  <span class="comment">// 存放cpu id的柔性数组</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>　　struct rps_map的cpus成员是用来记录配置文件中配置的参与报文分发处理的cpu核号的柔性数组，而len成员就是cpus柔性数组的长度。<br>　　了解存放配置文件解析结果的数据结构之后，再看对应的解析函数就比较容易理解了，其实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> ssize_t <span class="title">store_rps_map</span><span class="params">(struct netdev_rx_queue *<span class="built_in">queue</span>,</span></span></span><br><span class="line"><span class="function"><span class="params">		      struct rx_queue_attribute *attribute,</span></span></span><br><span class="line"><span class="function"><span class="params">		      <span class="keyword">const</span> <span class="keyword">char</span> *buf, <span class="keyword">size_t</span> len)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rps_map</span> *<span class="title">old_map</span>, *<span class="title">map</span>;</span></span><br><span class="line">	<span class="keyword">cpumask_var_t</span> mask;</span><br><span class="line">	<span class="keyword">int</span> err, cpu, i;</span><br><span class="line">	<span class="function"><span class="keyword">static</span> <span class="title">DEFINE_MUTEX</span><span class="params">(rps_map_mutex)</span></span>;</span><br><span class="line">	……</span><br><span class="line">	<span class="keyword">if</span> (!alloc_cpumask_var(&amp;mask, GFP_KERNEL))</span><br><span class="line">		<span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 解析缓冲区buf中的cpu位图 */</span></span><br><span class="line">	err = bitmap_parse(buf, len, cpumask_bits(mask), nr_cpumask_bits);</span><br><span class="line">	<span class="keyword">if</span> (err) &#123;</span><br><span class="line">		free_cpumask_var(mask);</span><br><span class="line">		<span class="keyword">return</span> err;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 申请map对象 */</span></span><br><span class="line">	<span class="built_in">map</span> = kzalloc(<span class="keyword">max_t</span>(<span class="keyword">unsigned</span> <span class="keyword">int</span>,</span><br><span class="line">	    RPS_MAP_SIZE(cpumask_weight(mask)), L1_CACHE_BYTES),</span><br><span class="line">	    GFP_KERNEL);</span><br><span class="line">	……</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 根据mask对象中的cpu掩码获取对应的cpu id，并存放到map-&gt;cpus数组中 */</span></span><br><span class="line">	i = <span class="number">0</span>;</span><br><span class="line">	for_each_cpu_and(cpu, mask, cpu_online_mask)</span><br><span class="line">		<span class="built_in">map</span>-&gt;cpus[i++] = cpu;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 记录数组的长度 */</span></span><br><span class="line">	<span class="keyword">if</span> (i)</span><br><span class="line">		<span class="built_in">map</span>-&gt;len = i;</span><br><span class="line">	<span class="keyword">else</span> &#123;</span><br><span class="line">		kfree(<span class="built_in">map</span>);</span><br><span class="line">		<span class="built_in">map</span> = <span class="literal">NULL</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	……</span><br><span class="line">	<span class="keyword">if</span> (<span class="built_in">map</span>)</span><br><span class="line">		static_key_slow_inc(&amp;rps_needed);</span><br><span class="line">	……</span><br><span class="line">	free_cpumask_var(mask);</span><br><span class="line">	<span class="keyword">return</span> len;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　根据上面设定的rps_cpus配置文件内容，以及这里的解析函数实现，我们可以知道在解析完成之后，struct rps_map类型的实例中len的值为4，而cpus数组的内容则是{0,2,4,6}。</p>
+<h3 id="rps中的负载均衡"><a href="#rps中的负载均衡" class="headerlink" title="rps中的负载均衡"></a>rps中的负载均衡</h3><p>　　从配置文件中获取到了参与报文分发处理的cpu列表信息之后，就可以根据报文的hash值，从cpu列表选取一个cpu进行后续的报文处理了。从cpu列表中获取核号的实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">get_rps_cpu</span><span class="params">(struct net_device *dev, struct sk_buff *skb,</span></span></span><br><span class="line"><span class="function"><span class="params">		       struct rps_dev_flow **rflowp)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">rps_sock_flow_table</span> *<span class="title">sock_flow_table</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">netdev_rx_queue</span> *<span class="title">rxqueue</span> = <span class="title">dev</span>-&gt;_<span class="title">rx</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rps_dev_flow_table</span> *<span class="title">flow_table</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rps_map</span> *<span class="title">map</span>;</span></span><br><span class="line">	<span class="keyword">int</span> cpu = <span class="number">-1</span>;</span><br><span class="line">	u32 tcpu;</span><br><span class="line">	u32 hash;</span><br><span class="line">	……</span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * 如果程序进入这个流程，说明使用rps而不是rfs来获取处理该报文所在流的cpu。</span></span><br><span class="line"><span class="comment">	 * 与rfs不同，rps是单纯用报文的hash值来分发报文，而不关注处理该流中报文的</span></span><br><span class="line"><span class="comment">	 * 应用程序所在的cpu。map-&gt;cpus数组在函数store_rps_map()中已经初始化，所以</span></span><br><span class="line"><span class="comment">	 * 这里就直接用报文中存放的hash值去索引map-&gt;cpus数组即可。</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="keyword">if</span> (<span class="built_in">map</span>) &#123;</span><br><span class="line">		tcpu = <span class="built_in">map</span>-&gt;cpus[reciprocal_scale(hash, <span class="built_in">map</span>-&gt;len)];</span><br><span class="line">		<span class="keyword">if</span> (cpu_online(tcpu)) &#123;</span><br><span class="line">			cpu = tcpu;</span><br><span class="line">			<span class="keyword">goto</span> done;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">done:</span><br><span class="line">	<span class="keyword">return</span> cpu;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　对于函数get_rps_cpu()，这里只选取了和rps处理相关的部分，rfs的部分在介绍rfs实现的时候在详细给出。从该函数中rps处理部分可以看到获取用于分发处理报文的cpu时，是用报文对应的hash值与上cpu列表掩码之后的得到的值当作cpu列表的索引值，进而获取到对应的cpu核号。</p>
+<h3 id="rps的报文处理流程"><a href="#rps的报文处理流程" class="headerlink" title="rps的报文处理流程"></a>rps的报文处理流程</h3><p>　　在了解了rps如何根据报文的hash值来选取分发处理该报文的cpu之后，我们自然而然会想到应该在什么时候获取到这个cpu呢，也就是何时调用get_rps_cpu()函数呢？我们知道，Linux在处理网卡收包中断的时候分为了上半部处理和下半部处理，对于支持NAPI接口的驱动而言，在上半部的处理主要就是将设备加入到cpu的私有数据softnet_data的待轮询设备列表中，而下半部主要就是调用poll回调函数从网卡缓冲区中获取报文，然后上送给协议栈。而函数get_rps_cpu()就是在下半部获取到报文信息，构造好skb对象，调用netif_receive_skb()之后，准备调用__netif_receive_skb()之前被调用的，也就是在netif_receive_skb_internal()函数中被调用的，其实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">netif_receive_skb_internal</span><span class="params">(struct sk_buff *skb)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">int</span> ret;</span><br><span class="line"></span><br><span class="line">	……</span><br><span class="line">	rcu_read_lock();</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_RPS</span></span><br><span class="line">	<span class="keyword">if</span> (static_key_false(&amp;rps_needed)) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">rps_dev_flow</span> <span class="title">voidflow</span>, *<span class="title">rflow</span> = &amp;<span class="title">voidflow</span>;</span></span><br><span class="line">		<span class="comment">/* 获取处理该报文的cpu以及对应的rps_dev_flow流表 */</span></span><br><span class="line">		<span class="keyword">int</span> cpu = get_rps_cpu(skb-&gt;dev, skb, &amp;rflow);</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* </span></span><br><span class="line"><span class="comment">		 * 将报文放入到该cpu私有数据对象softnet_data中的input_pkt_queue中，那</span></span><br><span class="line"><span class="comment">		 * 什么时候去input_pkt_queue队列中去取呢?在cpu的私有数据对象softnet_data</span></span><br><span class="line"><span class="comment">		 * 中，有一个backlog的成员，该成员的类型为struct napi_struct，在函数</span></span><br><span class="line"><span class="comment">		 * enqueue_to_backlog()中，会将backlog加入到cpu的待轮询设备列表中，并触发</span></span><br><span class="line"><span class="comment">		 * 软中断，在软中断处理函数net_rx_action()中会依次遍历待轮询设备列表中的</span></span><br><span class="line"><span class="comment">		 * 设备，并调用设备注册的poll回调函数来进行报文处理。而对应于rps，其poll</span></span><br><span class="line"><span class="comment">		 * 回调函数为process_backlog()，该函数会调用__netif_receive_skb()函数将</span></span><br><span class="line"><span class="comment">		 * 报文送至协议栈进行处理。</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (cpu &gt;= <span class="number">0</span>) &#123;</span><br><span class="line">			ret = enqueue_to_backlog(skb, cpu, &amp;rflow-&gt;last_qtail);</span><br><span class="line">			rcu_read_unlock();</span><br><span class="line">			<span class="keyword">return</span> ret;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	<span class="comment">/* 如果没有rps/rfs的话，报文直接就送上协议栈了。 */</span></span><br><span class="line">	ret = __netif_receive_skb(skb);</span><br><span class="line">	rcu_read_unlock();</span><br><span class="line">	<span class="keyword">return</span> ret;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　从函数netif_receive_skb_internal()的实现中可以看到，当rps调用函数get_rps_cpu()获取到用于分发处理报文的目标cpu之后，如果目标cpu有效，则会调用enqueue_to_backlog()函数做进一步处理，而不是直接调用函数__netif_receive_skb()将报文送上协议栈处理。那函数enqueue_to_backlog()做了什么工作呢，而进入了rps处理流程的报文又是什么时候会被上送到协议栈处理呢？<br>　　先来看下函数enqueue_to_backlog()主要做了哪些工作，其实该函数做的主要事情是尝试将报文加入到cpu私有数据对象softnet_data的input_pkt_queue队列中，如果该队列满了就将设备加入到cpu私有数据对象softnet_data的待轮询设备列表中，并触发一个收包软中断(软中断处理函数会调用poll回调函数从该队列中取数据)，然后再尝试将报文加入到input_pkt_queue队列中。该函数的实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">enqueue_to_backlog</span><span class="params">(struct sk_buff *skb, <span class="keyword">int</span> cpu,</span></span></span><br><span class="line"><span class="function"><span class="params">			      <span class="keyword">unsigned</span> <span class="keyword">int</span> *qtail)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">softnet_data</span> *<span class="title">sd</span>;</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> flags;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> qlen;</span><br><span class="line"></span><br><span class="line">	sd = &amp;per_cpu(softnet_data, cpu);</span><br><span class="line">	local_irq_save(flags);</span><br><span class="line">	rps_lock(sd);</span><br><span class="line">	……</span><br><span class="line">	qlen = skb_queue_len(&amp;sd-&gt;input_pkt_queue);</span><br><span class="line">	<span class="keyword">if</span> (qlen &lt;= netdev_max_backlog &amp;&amp; !skb_flow_limit(skb, qlen)) &#123;</span><br><span class="line">		<span class="keyword">if</span> (qlen) &#123;</span><br><span class="line">enqueue:</span><br><span class="line">			<span class="comment">/* 将报文添加到sd-&gt;input_pkt_queue队列的末尾，并更新队列尾部索引 */</span></span><br><span class="line">			__skb_queue_tail(&amp;sd-&gt;input_pkt_queue, skb);</span><br><span class="line">			input_queue_tail_incr_save(sd, qtail);</span><br><span class="line">			rps_unlock(sd);</span><br><span class="line">			local_irq_restore(flags);</span><br><span class="line">			<span class="keyword">return</span> NET_RX_SUCCESS;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* </span></span><br><span class="line"><span class="comment">		 * 程序执行到这里表明sd-&gt;input_pkt_queue已经满了，这个时候需要将sd-&gt;backlog加入到</span></span><br><span class="line"><span class="comment">		 * cpu私有数据的待轮询设备列表sd-&gt;poll_list中，并触发接收软中断NET_RX_SOFTIRQ，</span></span><br><span class="line"><span class="comment">		 * 软中断处理函数net_rx_action()中会从调用poll回调函数从input_pkt_queue队列中取包。</span></span><br><span class="line"><span class="comment">		 * 这样input_pkt_queue队列中又有空闲位置用来存放报文了。</span></span><br><span class="line"><span class="comment">		 * rps/rfs注册的poll回调的实现具体可以参考process_backlog()。</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (!__test_and_set_bit(NAPI_STATE_SCHED, &amp;sd-&gt;backlog.state)) &#123;</span><br><span class="line">			<span class="keyword">if</span> (!rps_ipi_queued(sd))</span><br><span class="line">				____napi_schedule(sd, &amp;sd-&gt;backlog);</span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">goto</span> enqueue;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">drop:</span><br><span class="line">	rps_unlock(sd);</span><br><span class="line">	local_irq_restore(flags);</span><br><span class="line">	……</span><br><span class="line">	<span class="keyword">return</span> NET_RX_DROP;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　在函数enqueue_to_backlog()中我们看到，如果cpu私有数据对象softnet_data的input_pkt_queue队列满了，那么就会将设备对象backlog(其实是struct napi_struct类型的实例)加入到cpu私有数据对象softnet_data的待轮询设备列表中，并触发一个NET_RX_SOFTIRQ的收包软中断。当中断子系统检测到有软中断发生，就会调用软中断的处理函数net_rx_action()，在函数net_rx_action()中则会遍历cpu私有数据对象softnet_data的待轮询的设备列表，当遍历到rps对应的backlog设备对象的时候，就会调用该设备对象注册的poll回调函数，即process_backlog()来处理input_pkt_queue队列。函数process_backlog()的实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">process_backlog</span><span class="params">(struct napi_struct *napi, <span class="keyword">int</span> quota)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">softnet_data</span> *<span class="title">sd</span> = <span class="title">container_of</span>(<span class="title">napi</span>, <span class="title">struct</span> <span class="title">softnet_data</span>, <span class="title">backlog</span>);</span></span><br><span class="line">	<span class="keyword">bool</span> again = <span class="literal">true</span>;</span><br><span class="line">	<span class="keyword">int</span> work = <span class="number">0</span>;</span><br><span class="line">	……</span><br><span class="line">	napi-&gt;weight = weight_p;</span><br><span class="line">	<span class="keyword">while</span> (again) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">sk_buff</span> *<span class="title">skb</span>;</span></span><br><span class="line"></span><br><span class="line">		<span class="comment">/* 循环获取sd-&gt;process_queue队列中的报文，然后调用__netif_receive_skb()送至协议栈 */</span></span><br><span class="line">		<span class="keyword">while</span> ((skb = __skb_dequeue(&amp;sd-&gt;process_queue))) &#123;</span><br><span class="line">			rcu_read_lock();</span><br><span class="line">			__netif_receive_skb(skb);</span><br><span class="line">			rcu_read_unlock();</span><br><span class="line">			input_queue_head_incr(sd);</span><br><span class="line">			<span class="keyword">if</span> (++work &gt;= quota)</span><br><span class="line">				<span class="keyword">return</span> work;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		local_irq_disable();</span><br><span class="line">		rps_lock(sd);</span><br><span class="line">		<span class="keyword">if</span> (skb_queue_empty(&amp;sd-&gt;input_pkt_queue)) &#123;</span><br><span class="line">			napi-&gt;state = <span class="number">0</span>;</span><br><span class="line">			again = <span class="literal">false</span>;</span><br><span class="line">		&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">			<span class="comment">/* </span></span><br><span class="line"><span class="comment">			 * 将sd-&gt;input_pkt_queue队列内容拼接到sd-&gt;process_queue队列中，从</span></span><br><span class="line"><span class="comment">			 * 上面的循环可以看出，process_backlog()并不是直接处理sd-&gt;input_pkt_queue队列的，</span></span><br><span class="line"><span class="comment">			 * 而是通过sd-&gt;process_queue队列做中转，处理完process_queue队列报文之后，再将</span></span><br><span class="line"><span class="comment">			 * input_pkt_queue队列的内容拼接到process_queue队列中，下次又继续处理process_queue队列。</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			skb_queue_splice_tail_init(&amp;sd-&gt;input_pkt_queue,</span><br><span class="line">						   &amp;sd-&gt;process_queue);</span><br><span class="line">		&#125;</span><br><span class="line">		rps_unlock(sd);</span><br><span class="line">		local_irq_enable();</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> work;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　从函数process_backlog()的实现我们可以看到处理input_pkt_queue队列其实就是从该队列中取出报文，然后调用__netif_receive_skb()上报文送至协议栈进行后续处理。所以对于本节开始提出的问题—rps处理流程中的报文是何时被送至协议栈的，现在就比较清晰了，对于没有rps的处理流程，如果采用的是NAPI收包方式，那么软中断处理函数net_rx_action()会调用网卡驱动注册的poll回调函数从网卡中获取到报文数据后就将报文数据上送至协议栈；而对于有rps的处理流程，软中断处理函数net_rx_action()会调用网卡驱动注册的poll回调函数从网卡中获取到报文数据后，暂时不直接送至协议栈，而是选择一个目标cpu，将报文放到该cpu私有数据对象softnet_data的input_pkt_queue队列中，待对列input_pkt_queue满了之后，就将该cpu对应的backlog设备对象加入到该cpu的待轮询设备列表中，并触发软中断，软中断处理函数轮询到backlog设备对象后，调用poll回调函数process_backlog()从input_pkt_queue队列中取出报文，再上送至协议栈。<br>　　到这里rps的原理及实现就介绍的差不多了。下面介绍下rfs的原理及实现。</p>
+<h2 id="rfs"><a href="#rfs" class="headerlink" title="rfs"></a>rfs</h2><p>　　从rps的原理来看，我们知道rps只是根据报文的hash值从分发处理报文的cpu列表中选取一个目标cpu，这样虽然负载均衡的效果很好，但是当用户态处理报文的cpu和内核处理报文软中断的cpu不同的时候，就会导致cpu的缓存不命中，影响性能。而rfs就是用来处理这种情况的，rfs的目标是通过指派处理报文的应用程序所在的cpu来在内核态处理报文，以此来增加cpu的缓存命中率。所以rfs相比于rps，主要差别就是在选取分发处理报文的目标cpu上，而rfs还需要依靠rps提供的机制进行报文的后续处理。<br>　　rfs实现指派处理报文的应用程序所在的cpu来在内核态处理报文这一目标主要是依靠两个流表来实现的，其中一个是设备流表，记录的是上次在内核态处理该流中报文的cpu；另外一个是全局的socket流表，记录的是流中的报文渴望被处理的目标cpu。</p>
+<h3 id="rfs的设备流表"><a href="#rfs的设备流表" class="headerlink" title="rfs的设备流表"></a>rfs的设备流表</h3><p>　　设备流表定义在网卡的硬件接收队列中，如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">netdev_rx_queue</span> &#123;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_RPS</span></span><br><span class="line">	……</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rps_dev_flow_table</span> __<span class="title">rcu</span>	*<span class="title">rps_flow_table</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	……</span><br><span class="line">&#125; ____cacheline_aligned_in_smp;</span><br></pre></td></tr></table></figure>
+
+<p>　　设备流表的类型为struct rps_dev_flow_table，其定义为：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rps_dev_flow_table</span> &#123;</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> mask;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span> <span class="title">rcu</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rps_dev_flow</span> <span class="title">flows</span>[0];</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>　　设备流表中主要包括一个类型为struct rps_dev_flow的柔性数组，以及存放着柔性数组大小的成员mask。而struct rps_dev_flow类型的实例则主要包括存放着上次处理该流中报文的cpu以及所在cpu私有数据对象softnet_data的input_pkt_queue队列尾部索引的两个成员，其定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rps_dev_flow</span> &#123;</span></span><br><span class="line">	u16 cpu;  <span class="comment">/* 处理该流的cpu */</span></span><br><span class="line">	u16 filter;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> last_qtail;  <span class="comment">/* sd-&gt;input_pkt_queue队列的尾部索引，即该队列长度 */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>　　上面说到设备流表中的mask成员是类型为struct rps_dev_flow的柔性数组的大小，也就是流表项的数目，这个主要是通过配置文件 /sys/class/net/(dev)/queues/rx-(n)/rps_flow_cnt进行指定的。当我们设置了配置文件，那么内核就会获取到数据，并初始化网卡硬件接收队列中的设备流表成员rps_flow_table，初始化过程可以参考函数store_rps_dev_flow_table_cnt()。</p>
+<h3 id="rfs的全局socket流表"><a href="#rfs的全局socket流表" class="headerlink" title="rfs的全局socket流表"></a>rfs的全局socket流表</h3><p>　　rps_sock_flow_table是一个全局的数据流表，这个表中包含了数据流渴望被处理的CPU。这个CPU是当前处理流中报文的应用程序所在的CPU。全局socket流表会在调recvmsg，sendmsg (特别是inet_accept(), inet_recvmsg(), inet_sendmsg(), inet_sendpage() and tcp_splice_read())，被设置或者更新。<br>全局socket流表rps_sock_flow_table的定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rps_sock_flow_table</span> &#123;</span></span><br><span class="line">	u32	mask;</span><br><span class="line">	u32	ents[<span class="number">0</span>] ____cacheline_aligned_in_smp;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>　　struct rps_sock_flow_table类型的mask成员存放的就是ents这个柔性数组的大小，该值也是通过配置文件的方式指定的，相关的配置文件为 /proc/sys/net/core/rps_sock_flow_entries。<br>　　上面说到全局socket流表会在调用recvmsg()等函数时被更新，而在这些函数中是通过调用函数sock_rps_record_flow()来更新或者记录流表项信息的，而sock_rps_record_flow()中最终又是调用函数rps_record_sock_flow()来更新ents柔性数组的，该函数实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> <span class="keyword">void</span> <span class="title">rps_record_sock_flow</span><span class="params">(struct rps_sock_flow_table *table,</span></span></span><br><span class="line"><span class="function"><span class="params">					u32 hash)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">if</span> (table &amp;&amp; hash) &#123;</span><br><span class="line">		<span class="comment">/* 用hash值对表的掩码求余，获取对应的表项索引 */</span></span><br><span class="line">		<span class="keyword">unsigned</span> <span class="keyword">int</span> index = hash &amp; table-&gt;mask;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* 保留hash值的高位，将用来存放cpu id的低位清零 */</span></span><br><span class="line">		u32 val = hash &amp; ~rps_cpu_mask;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* We only give a hint, preemption can change CPU under us */</span></span><br><span class="line">		<span class="comment">/* </span></span><br><span class="line"><span class="comment">		 * raw_smp_processor_id()获取当前cpu，经过上面和这两部分，val存放了</span></span><br><span class="line"><span class="comment">		 * 高位hash值和cpu id，为什么在高位还需要保留部分hash值而不直接存放cpu</span></span><br><span class="line"><span class="comment">		 * id呢?原因是因为在get_rps_cpu()函数中，还会用val中存放的高位hash值</span></span><br><span class="line"><span class="comment">		 * 来校验skb中的hash值是否在rps_sock_flow_table中有对应的记录。详情可以</span></span><br><span class="line"><span class="comment">		 * 参考get_rps_cpu()。</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		val |= raw_smp_processor_id();</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* 记录hash值对应的cpu */</span></span><br><span class="line">		<span class="keyword">if</span> (table-&gt;ents[index] != val)</span><br><span class="line">			table-&gt;ents[index] = val;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　在该函数中，table传递的就是全局socket流表rps_sock_flow_table的地址，hash则是流hash，也就是通过报文计算得到的hash值。从这个函数的实现我们可以看到，ents柔性数组中存放的不仅仅是当前处理流中报文的应用程序所在的cpu，其中还包括了流的hash值的高位数据，其内存布局如下：</p>
+<div align="center">  </div>
+
+<p>　　为什么流表项中不直接存放cpu信息，还要存放hash值的高位部分呢？这个主要使用来做校验的，这部分可以在函数get_rps_cpu()中看到。介绍了rfs负载均衡策略中会使用到的两种流表之后，再来理解其负载均衡策略就比较清晰了。</p>
+<h3 id="rfs的负载均衡"><a href="#rfs的负载均衡" class="headerlink" title="rfs的负载均衡"></a>rfs的负载均衡</h3><p>　　上面说到，rfs相比于rps，主要差别就是在选取分发处理报文的目标cpu上。所以rfs负载均衡策略的实现也主要体现在函数get_rps_cpu()中，其实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">get_rps_cpu</span><span class="params">(struct net_device *dev, struct sk_buff *skb,</span></span></span><br><span class="line"><span class="function"><span class="params">		       struct rps_dev_flow **rflowp)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">rps_sock_flow_table</span> *<span class="title">sock_flow_table</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">netdev_rx_queue</span> *<span class="title">rxqueue</span> = <span class="title">dev</span>-&gt;_<span class="title">rx</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rps_dev_flow_table</span> *<span class="title">flow_table</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rps_map</span> *<span class="title">map</span>;</span></span><br><span class="line">	<span class="keyword">int</span> cpu = <span class="number">-1</span>;</span><br><span class="line">	u32 tcpu;</span><br><span class="line">	u32 hash;</span><br><span class="line">	……</span><br><span class="line">	<span class="comment">/* 从接收队列中获取记录着上次处理报文所在流的cpu的流表rps_dev_flow_table */</span></span><br><span class="line">	flow_table = rcu_dereference(rxqueue-&gt;rps_flow_table);</span><br><span class="line">	<span class="built_in">map</span> = rcu_dereference(rxqueue-&gt;rps_map);</span><br><span class="line">	<span class="keyword">if</span> (!flow_table &amp;&amp; !<span class="built_in">map</span>)</span><br><span class="line">		<span class="keyword">goto</span> done;</span><br><span class="line"></span><br><span class="line">	skb_reset_network_header(skb);</span><br><span class="line">	<span class="comment">/* </span></span><br><span class="line"><span class="comment">	 * 获取报文的hash值，如果硬件计算了，就用硬件计算的，否则进行软件计算，</span></span><br><span class="line"><span class="comment">	 * 后续会用这个hash值去索引rps_dev_flow_table和rps_sock_flow_table两个流表</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	hash = skb_get_hash(skb);</span><br><span class="line">	<span class="keyword">if</span> (!hash)</span><br><span class="line">		<span class="keyword">goto</span> done;</span><br><span class="line"></span><br><span class="line">	sock_flow_table = rcu_dereference(rps_sock_flow_table);</span><br><span class="line">	<span class="keyword">if</span> (flow_table &amp;&amp; sock_flow_table) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">rps_dev_flow</span> *<span class="title">rflow</span>;</span></span><br><span class="line">		u32 next_cpu;</span><br><span class="line">		u32 ident;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* First check into global flow table if there is a match */</span></span><br><span class="line">		ident = sock_flow_table-&gt;ents[hash &amp; sock_flow_table-&gt;mask];</span><br><span class="line">		<span class="comment">/* </span></span><br><span class="line"><span class="comment">		 * 从函数rps_record_sock_flow()中可以看到，ident由两部分组成，即</span></span><br><span class="line"><span class="comment">		 * 高位是hash值的一部分，低位是cpu id。所以这里用异或操作符(^)来判断</span></span><br><span class="line"><span class="comment">		 * ident高位部分和hash值是否一样，然后低位又和cpu id掩码按位取反的值</span></span><br><span class="line"><span class="comment">		 * 进行按位与操作，经过这样的计算，如果最后面表达式值为0，说明hash值</span></span><br><span class="line"><span class="comment">		 * 在rps_sock_flow_table中有记录，则用rfs进行后续处理，否则用rps。</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> ((ident ^ hash) &amp; ~rps_cpu_mask)</span><br><span class="line">			<span class="keyword">goto</span> try_rps;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* </span></span><br><span class="line"><span class="comment">		 * 在函数rps_record_sock_flow()中我们可以看到，rps_sock_flow_table全局</span></span><br><span class="line"><span class="comment">		 * 流表中ents数组中存放的并不是单纯的cpu id，而是hash值高位和cpu id的组合。</span></span><br><span class="line"><span class="comment">		 * 所以这里用cpu掩码来获取cpu id。全局流表rps_sock_flow_table中存放的是流</span></span><br><span class="line"><span class="comment">		 * 渴望被处理的cpu。</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		next_cpu = ident &amp; rps_cpu_mask;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* tcpu是上次处理这个流的cpu */</span></span><br><span class="line">		rflow = &amp;flow_table-&gt;flows[hash &amp; flow_table-&gt;mask];</span><br><span class="line">		tcpu = rflow-&gt;cpu;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* </span></span><br><span class="line"><span class="comment">		 * 如果流渴望被处理的cpu和上次处理这个流的cpu不同，说明处理流的应用程序</span></span><br><span class="line"><span class="comment">		 * 被调度到了另外一个核next_cpu上，所以这里需要将tcpu设置为流渴望被</span></span><br><span class="line"><span class="comment">		 * 处理的cpu，这个流所在报文需要被送到next_cpu上。</span></span><br><span class="line"><span class="comment">		 * 对于最后一个条件，结合tcpu!=next_cpu，可以这样理解:处理流的应用程序</span></span><br><span class="line"><span class="comment">		 * 目前被调度到了另外一个cpu上，而上次处理该流中报文的cpu(即tcpu)中又没有</span></span><br><span class="line"><span class="comment">		 * 剩余没有处理的这条流中的报文，那么就可以将上次处理该流报文的cpu更新为</span></span><br><span class="line"><span class="comment">		 * 应用程序所在的cpu；如果tcpu中还有剩余的属于该流的报文没有处理完，那么</span></span><br><span class="line"><span class="comment">		 * 就会继续将本次处理的属于该流的新报文继续让tcpu来处理，这样可以保证同</span></span><br><span class="line"><span class="comment">		 * 属于一条流的报文可以被有序的处理，而不会乱序。</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (unlikely(tcpu != next_cpu) &amp;&amp;</span><br><span class="line">		    (tcpu &gt;= nr_cpu_ids || !cpu_online(tcpu) ||</span><br><span class="line">		     ((<span class="keyword">int</span>)(per_cpu(softnet_data, tcpu).input_queue_head -</span><br><span class="line">		      rflow-&gt;last_qtail)) &gt;= <span class="number">0</span>)) &#123;</span><br><span class="line">			tcpu = next_cpu;</span><br><span class="line">			rflow = set_rps_cpu(dev, skb, rflow, next_cpu);</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (tcpu &lt; nr_cpu_ids &amp;&amp; cpu_online(tcpu)) &#123;</span><br><span class="line">			*rflowp = rflow;</span><br><span class="line">			cpu = tcpu;</span><br><span class="line">			<span class="keyword">goto</span> done;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	……</span><br><span class="line">done:</span><br><span class="line">	<span class="keyword">return</span> cpu;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　从其实现可以看到，rfs的负载均衡策略主要是通过判断报文的hash值(亦即流hash值)所对应的两个流表（设备流表和全局socket流表）中的记录的cpu是否相同，如果相同，那么该cpu就会被当作内核态处理该流中报文的cpu；如果不相同，那么在满足一定条件的情况需要将内核态处理该流中报文的cpu设置成用户态处理该流中报文的应用程序所在的cpu，如果条件不满足的话，那么还是会继续沿用上一次在内核态处理该流中的报文的cpu来进行本次报文的处理。切换用于在内核态处理流中报文的cpu所需要满足的任一条件如下：<br>　　1、    上一次在内核态处理该流中报文的cpu是离线的。<br>　　2、    上一次在内核态处理该流中报文的cpu是无效值（初始化会设置为nr_cpu_ids，该值无效）。<br>　　3、上一次在内核态处理该流中报文的cpu的私有数据对象softnet_data的input_pkt_queue队列的头部索引input_queue_head的值大于设备流表中记录的input_pkt_queue队列的尾部索引值，这说明上一次在内核态处理该流中报文的cpu的input_pkt_queue队列中已经没有属于该流的未上送给协议栈的报文了，此时如果切换在内核态处理属于该流的报文的cpu也不会导致属于该流的报文被乱序处理了。<br>　　到这里rfs的原理和实现就介绍完了。</p>
+<p><strong>参考：</strong><br>1、    <a href="https://lwn.net/Articles/362339/" target="_blank" rel="noopener">rps：Receive Package Steering</a><br>2、    <a href="https://lwn.net/Articles/382428/" target="_blank" rel="noopener">rfs：Receive Flow Steering</a></p>
+<p>** 本文作者： TitenWang **
+** 本文链接： <a href="https://titenwang.github.io/2017/07/09/implementation-of-rps-and-rfs/">https://titenwang.github.io/2017/07/09/implementation-of-rps-and-rfs/</a> **
+** 版权声明： 本博客所有文章除特别声明外，均采用<a href="https://creativecommons.org/licenses/by-nc-nd/3.0/cn/" target="_blank" rel="noopener"> CC BY-NC-ND 3.0 </a>许可协议。**</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
+          
+            <a href="/tags/eBPF/" rel="tag"># eBPF</a>
+          
+            <a href="/tags/协议栈/" rel="tag"># 协议栈</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/05/01/intel-82599-transmit-packet/" rel="next" title="基于82599网卡的二层网络数据包发送">
+                <i class="fa fa-chevron-left"></i> 基于82599网卡的二层网络数据包发送
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/10/05/implementation-of-epoll/" rel="prev" title="epoll的原理和实现">
+                epoll的原理和实现 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/book.jpg" alt="TitenWang">
+            
+              <p class="site-author-name" itemprop="name">TitenWang</p>
+              <div class="site-description motion-element" itemprop="description">The Next Maigc</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">13</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/TitenWang" title="GitHub &rarr; https://github.com/TitenWang" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="/wtb326@163.com" title="E-Mail &rarr; wtb326@163.com"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                推荐阅读
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.sdu.edu.cn/" title="http://www.sdu.edu.cn/" rel="noopener" target="_blank">Shandong University</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#rps"><span class="nav-text">rps</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#rps中的cpu位图"><span class="nav-text">rps中的cpu位图</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#rps中的负载均衡"><span class="nav-text">rps中的负载均衡</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#rps的报文处理流程"><span class="nav-text">rps的报文处理流程</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#rfs"><span class="nav-text">rfs</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#rfs的设备流表"><span class="nav-text">rfs的设备流表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#rfs的全局socket流表"><span class="nav-text">rfs的全局socket流表</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#rfs的负载均衡"><span class="nav-text">rfs的负载均衡</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">TitenWang</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.8.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>

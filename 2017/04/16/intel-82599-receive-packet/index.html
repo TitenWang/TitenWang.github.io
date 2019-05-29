@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-CN">
+<head><meta name="generator" content="Hexo 3.8.0">
+  <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2">
+
+<link rel="stylesheet" href="/css/main.css?v=7.1.1">
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=7.1.1">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=7.1.1">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=7.1.1" color="#222">
+
+
+
+
+
+
+
+<script id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '7.1.1',
+    sidebar: {"position":"left","display":"post","offset":12,"onmobile":false,"dimmer":false},
+    back2top: true,
+    back2top_sidebar: false,
+    fancybox: false,
+    fastclick: false,
+    lazyload: false,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+  
+
+
+
+
+  <meta name="description" content="本篇文档主要描述了网络数据包在二层的接收流程，主要包括以下三个部分：　　1）、82599网卡和数据包接收相关的内容；　　2）、ixgbe网卡驱动数据包接收相关的配置；　　3）、ixgbe网卡驱动napi接口的处理。">
+<meta name="keywords" content="网络编程,eBPF,网卡驱动">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于82599网卡的二层网络数据包接收">
+<meta property="og:url" content="https://TitenWang.github.io/2017/04/16/intel-82599-receive-packet/index.html">
+<meta property="og:site_name" content="我心知度">
+<meta property="og:description" content="本篇文档主要描述了网络数据包在二层的接收流程，主要包括以下三个部分：　　1）、82599网卡和数据包接收相关的内容；　　2）、ixgbe网卡驱动数据包接收相关的配置；　　3）、ixgbe网卡驱动napi接口的处理。">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:updated_time" content="2017-05-01T06:00:20.386Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="基于82599网卡的二层网络数据包接收">
+<meta name="twitter:description" content="本篇文档主要描述了网络数据包在二层的接收流程，主要包括以下三个部分：　　1）、82599网卡和数据包接收相关的内容；　　2）、ixgbe网卡驱动数据包接收相关的配置；　　3）、ixgbe网卡驱动napi接口的处理。">
+
+
+
+
+
+  
+  
+  <link rel="canonical" href="https://TitenWang.github.io/2017/04/16/intel-82599-receive-packet/">
+
+
+
+<script id="page.configurations">
+  CONFIG.page = {
+    sidebar: "",
+  };
+</script>
+
+  <title>基于82599网卡的二层网络数据包接收 | 我心知度</title>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .motion-element,
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-title { opacity: initial; }
+
+  .use-motion .logo,
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-CN">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">我心知度</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+    
+      
+        <p class="site-subtitle">TitenWang's Blog</p>
+      
+    
+    
+  </div>
+
+  <div class="site-nav-toggle">
+    <button aria-label="切换导航栏">
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  
+    <ul id="menu" class="menu">
+      
+        
+        
+        
+          
+          <li class="menu-item menu-item-home">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/" rel="section"><i class="menu-item-icon fa fa-fw fa-home"></i> <br>首页</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-about">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/about/" rel="section"><i class="menu-item-icon fa fa-fw fa-user"></i> <br>关于</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-tags">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/tags/" rel="section"><i class="menu-item-icon fa fa-fw fa-tags"></i> <br>标签</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-categories">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/categories/" rel="section"><i class="menu-item-icon fa fa-fw fa-th"></i> <br>分类</a>
+
+  </li>
+        
+        
+        
+          
+          <li class="menu-item menu-item-archives">
+
+    
+    
+    
+      
+    
+
+    
+
+    <a href="/archives/" rel="section"><i class="menu-item-icon fa fa-fw fa-archive"></i> <br>归档</a>
+
+  </li>
+
+      
+      
+        <li class="menu-item menu-item-search">
+          
+            <a href="javascript:;" class="popup-trigger">
+          
+            
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br>搜索</a>
+        </li>
+      
+    </ul>
+  
+
+  
+    
+
+  
+
+  
+    <div class="site-search">
+      
+  <div class="popup search-popup local-search-popup">
+  <div class="local-search-header clearfix">
+    <span class="search-icon">
+      <i class="fa fa-search"></i>
+    </span>
+    <span class="popup-btn-close">
+      <i class="fa fa-times-circle"></i>
+    </span>
+    <div class="local-search-input-wrapper">
+      <input autocomplete="off" placeholder="搜索..." spellcheck="false" type="text" id="local-search-input">
+    </div>
+  </div>
+  <div id="local-search-result"></div>
+</div>
+
+
+
+    </div>
+  
+</nav>
+
+
+
+  
+
+
+
+</div>
+    </header>
+
+    
+
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  
+
+  <article class="post post-type-categories" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="https://TitenWang.github.io/2017/04/16/intel-82599-receive-packet/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="TitenWang">
+      <meta itemprop="description" content="The Next Maigc">
+      <meta itemprop="image" content="/images/book.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="我心知度">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">基于82599网卡的二层网络数据包接收
+
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+
+            
+            
+            
+
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+
+              
+                
+              
+
+              <time title="创建时间：2017-04-16 17:44:09" itemprop="dateCreated datePublished" datetime="2017-04-16T17:44:09+08:00">2017-04-16</time>
+            
+
+            
+              
+
+              
+                
+                <span class="post-meta-divider">|</span>
+                
+
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                
+                  <span class="post-meta-item-text">更新于</span>
+                
+                <time title="修改时间：2017-05-01 14:00:20" itemprop="dateModified" datetime="2017-05-01T14:00:20+08:00">2017-05-01</time>
+              
+            
+          </span>
+
+          
+            <span class="post-category">
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/eBPF/" itemprop="url" rel="index"><span itemprop="name">eBPF</span></a></span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>　　本篇文档主要描述了网络数据包在二层的接收流程，主要包括以下三个部分：<br>　　1）、82599网卡和数据包接收相关的内容；<br>　　2）、ixgbe网卡驱动数据包接收相关的配置；<br>　　3）、ixgbe网卡驱动napi接口的处理。<a id="more"></a></p>
+<h2 id="82599网卡和数据包接收相关的内容"><a href="#82599网卡和数据包接收相关的内容" class="headerlink" title="82599网卡和数据包接收相关的内容"></a>82599网卡和数据包接收相关的内容</h2><p>　　这一部分要介绍的是82599网卡中和数据包接收相关的内容。网络报文接收流程所涉及的内容很多，如报文过滤、mac层卸载、报文接收描述符、校验和卸载以及分离报文有效载荷和头部等，由于篇幅原因，这里只介绍了报文接收描述符相关的内容，其他内容会在后续描述中进行穿插。　　<br>　　说到网卡报文接收，就必须得说到报文接收描述符，因为报文接收描述符承载了报文从网卡流入到主存的过程。对于网卡硬件而言，当网卡收到网络报文的时候，会往报文接收描述符中指定的地址写入报文数据，而网卡驱动则会从报文接收描述符中指定的地址读取报文，并送往上层协议栈处理。<br>　　除了上面说到的存放报文的内存地址，报文接收描述符中还有用于存储报文信息的域。对于82599网卡而言，其支持两种格式的报文接收描述符，即传统格式和高级格式。虽然有两种不同格式的报文接收描述符，但是两种格式的报文接收描述符所占用的内存大小是一样的（目前为16字节），只是对这块内存使用有所不同。对于两种不同格式的报文接收描述符，可以在网卡驱动初始化的时候进行配置，通过设置网卡的SRRCTL寄存器的DRSCTYPE域进而选择使用某种格式的报文接收描述符。在初始化阶段，网卡驱动会申请报文描述符，并填充描述符中相关的域，然后告诉网卡该描述符可用，后续网卡接收到报文就可以用报文描述符来存储报文相关的信息，然后网卡将报文描述符回写给网卡驱动，网卡驱动从中获取所需要信息，并交由上层进行处理。</p>
+<h3 id="传统格式报文接收描述符"><a href="#传统格式报文接收描述符" class="headerlink" title="传统格式报文接收描述符"></a>传统格式报文接收描述符</h3><p>　　先来看下82599网卡中对传统格式报文接收描述符的定义，如下：</p>
+<div align="center">  </div>
+　　从上面的图中可以看到，报文接收描述符的低八个字节存放的是用于存放报文的内存起始地址，而高八个字节存放的是网卡对报文进行预处理得到的一些信息，如报文长度，VLAN　Tag以及校验和信息等，这部分信息会在网卡回写报文描述符给驱动的时候存到描述符对应的域中。对于一些比较固定的功能，比如报文相关校验和计算，VLAN头的解析等功能都可以卸载到网卡，由网卡来操作，这样可以加速报文的处理。
+### 高级格式报文接收描述符
+　　相比于传统格式，高级格式的报文接收描述符可以用来支持更多的功能特性，如分离报文有效负载和报文头等。高级格式的报文描述符由于需要支持更多的功能特性，所以分为了读格式和回写格式。
+　　先来看下82599网卡中读格式的定义，如下图：
+<div align="center">  </div>
+　　从图中可以看到，读格式的报文描述符中主要有四个部分，分别是报文缓冲区地址、A0位、头缓冲区地址和DD位。对于报文缓冲区地址和头缓冲区地址，顾名思义，存储的就是用来存放报文有效载荷和头部的缓冲区首地址。而对于DD位的作用，网卡驱动可以通过读取该位的值来判断该描述符对应的缓冲区中是否已经存放了网卡接收的报文。
+　　再来看下82599网卡中回写格式的定义，如下图：
+<div align="center">  </div>
+　　回写代表的就是网卡往描述符对应的缓冲区中存放了报文数据，并将报文相关的元信息写入到描述符对应的域中，并设置DD位，以告诉网卡驱动该描述已经存放了报文信息。回写格式中涉及到很多和报文相关的信息，如接收报文时所使用的RSS类型，报文长度和报文接收状态等信息。这里不一一介绍，详细可以参考82599的datasheet。
+### 报文接收描述符环形队列
+　　上面说到，报文接收描述符承载了报文从网卡流入到主存的过程，是网卡驱动和网卡都会操作的对象，那么自然而然会有以下几个疑问：
+　　1）、报文接收描述符是以何种组织形式在网卡驱动和网卡之间进行传递的？
+　　2）、网卡驱动怎么通知网卡报文接收描述符可用的？
+　　在报文接收流程中，报文接收描述符是通过环形队列来管理的，当然这个环形队列是逻辑上的，队列中的描述符在内存上是连续的。网卡或者网卡驱动在进行操作的时候，如果发现已经到达了队列的末尾，那么下次操作又会从队列头部开始，从而实现环形的操作逻辑。报文接收描述符环形队列的结构体如下：
+<div align="center">  </div>
+　　对于第一和第二个问题，其中也已经在上面的描述符环形队列图中有体现。在对问题进行回答之前先要了解下82599网卡中和报文接收描述符环形队列相关的几个寄存器。
+　　1）、RDBA寄存器。这个寄存器存放了报文接收描述符环形队列的起始地址，也就是上图中Base指向的地址。
+　　2）、RDLEN寄存器。这个寄存器存放了报文接收描述符环形队列的长度，也就是接收描述符环形队列所占用的字节数，对应上图中的Size。
+　　3）、RDH寄存器。这个寄存器存放的是一个距离队列头部的偏移值，代表的是第一个可以被网卡用来存放报文信息的描述符。当网卡完成了将一个报文信息存放到描述符后，就会更新RDH寄存器的值，使之指向下一个即将用来存放报文信息的描述符。也就是说这个寄存器的值是由网卡来更新的，该寄存器对应上图中的Head。
+　　4）、RDT寄存器。这个寄存器存放的也是一个距离队列头部的偏移值，代表的是硬件可以用来存放报文信息的最后一个描述符的下一个描述符。当网卡驱动填充了报文描述中的报文缓冲区地址后就会更新该寄存器的值，使之指向下一个即将填充地址信息并给网卡使用的描述符，该寄存器对应上图中的Tail。
+　　在了解了这几个寄存器的作用之后，对于本节一开始提出的两个问题就比较容易知晓了。对于第一个问题，报文描述符是以环形队列的方式来组织的；对于第二个问题，因为网卡驱动在提供可用报文接收描述符给网卡后都会更新RDT寄存器的值，所以网卡可以根据RDT寄存器知道自己当前可用的描述符信息，简单来说RDH和RDT之间的描述符就是网卡可以使用的。
+## ixgbe网卡驱动数据包接收相关的配置
+　　第一部分已经讲了网卡对描述符的定义，以及网卡中用来操作描述符环形队列的几个相关的寄存器，对网卡是如何使用描述符有了一定的了解。这一部分我们一起来看下网卡驱动是如何使用描述符以及管理描述符环形队列的。
+　　报文接收描述符以及描述符环形队列是网卡和网卡驱动都会操作的对象，所以网卡和网卡驱动对接收报文描述符的定义也必须保持一致。与网卡相对应的，网卡驱动从软件的角度定义了接收报文描述符，如下：    
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">union</span> ixgbe_adv_rx_desc &#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">		__le64 pkt_addr; <span class="comment">/* Packet buffer address */</span></span><br><span class="line">		__le64 hdr_addr; <span class="comment">/* Header buffer address */</span></span><br><span class="line">	&#125; read;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">			<span class="keyword">union</span> &#123;</span><br><span class="line">				__le32 data;</span><br><span class="line">				<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">					__le16 pkt_info; <span class="comment">/* RSS, Pkt type */</span></span><br><span class="line">					__le16 hdr_info; <span class="comment">/* Splithdr, hdrlen */</span></span><br><span class="line">				&#125; hs_rss;</span><br><span class="line">			&#125; lo_dword;</span><br><span class="line">			<span class="keyword">union</span> &#123;</span><br><span class="line">				__le32 rss; <span class="comment">/* RSS Hash */</span></span><br><span class="line">				<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">					__le16 ip_id; <span class="comment">/* IP id */</span></span><br><span class="line">					__le16 csum; <span class="comment">/* Packet Checksum */</span></span><br><span class="line">				&#125; csum_ip;</span><br><span class="line">			&#125; hi_dword;</span><br><span class="line">		&#125; lower;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">			__le32 status_error; <span class="comment">/* ext status/error */</span></span><br><span class="line">			__le16 length; <span class="comment">/* Packet length */</span></span><br><span class="line">			__le16 vlan; <span class="comment">/* VLAN tag */</span></span><br><span class="line">		&#125; upper;</span><br><span class="line">	&#125; wb;  <span class="comment">/* writeback */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>　　报文接收描述符环形队列是用做网络报文接收的，而在网卡中接收报文的最小单位是一个队列，即RX队列。所以一般来说就是一个RX队列对应一个报文接收描述符环形队列。<br>　　从ixgbe驱动的实现可以知道，ixgbe使用一个叫做中断向量的对象来管理队列，其定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_q_vector</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_adapter</span> *<span class="title">adapter</span>;</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_IXGBE_DCA</span></span><br><span class="line">	<span class="keyword">int</span> cpu;	    <span class="comment">/* CPU for DCA */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	u16 v_idx;		<span class="comment">/* index of q_vector within array, also used for</span></span><br><span class="line"><span class="comment">				 * finding the bit in EICR and friends that</span></span><br><span class="line"><span class="comment">				 * represents the vector for this ring */</span></span><br><span class="line">	u16 itr;		<span class="comment">/* Interrupt throttle rate written to EITR */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 分别以链表方式管理中断向量中的rx和tx队列 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_ring_container</span> <span class="title">rx</span>, <span class="title">tx</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">napi_struct</span> <span class="title">napi</span>;</span></span><br><span class="line">	<span class="keyword">cpumask_t</span> affinity_mask;</span><br><span class="line">	<span class="keyword">int</span> numa_node;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rcu_head</span> <span class="title">rcu</span>;</span>	<span class="comment">/* to avoid race with update stats on free */</span></span><br><span class="line">	<span class="keyword">char</span> name[IFNAMSIZ + <span class="number">9</span>];</span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_NET_RX_BUSY_POLL</span></span><br><span class="line">	<span class="keyword">atomic_t</span> state;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span>  <span class="comment">/* CONFIG_NET_RX_BUSY_POLL */</span></span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* for dynamic allocation of rings associated with this q_vector */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_ring</span> <span class="title">ring</span>[0] ____<span class="title">cacheline_internodealigned_in_smp</span>;</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>　　在上面的定义中，struct ixgbe_q_vector对象最后一个类型为struct ixgbe_ring的柔性数组成员就是由该中断向量所管理的队列，这里包括了RX队列和TX队列。报文接收流程只需要关注其中的RX队列即可。一般来说一个中断向量会关联一个硬件中断。当网卡往中断向量中的某个RX队列的描述符中写入报文信息时，就会触发对应的硬件中断，然后中断子系统就会调用我们注册的中断处理函数来处理这个中断，在ixgbe驱动中对应的就是ixgbe_intr()（在msi-x中断模式下对应的是ixgbe_msix_clean_rings()）。这里需要做一个说明，就是在legacy或者msi中断模式下，只会使用一个中断向量，对应的使用一个中断号；而在msi-x中断模式下，可能会有多个中断向量，对应的会有多个中断号，一般来说会把一个中断向量对应的中断号进行绑核处理，这样可以提高报文处理效率。而具体到某一个RX队列是如何同一个中断号进行关联的，这里还涉及到另外一个网卡寄存器，即Interrupt Vector Alloction（IVAR），这里不再详细介绍，可以参考ixgbe驱动的ixgbe_configure_msi_and_legacy()和ixgbe_configure_msix()函数，以及网卡中断部分的配置。<br>　　在ixgbe网卡驱动的实现中，我们可以看到驱动是以一个叫做struct ixgbe_ring的对象来管理报文描述符环形队列(不管是接收还是发送)，其定义如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_ring</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_ring</span> *<span class="title">next</span>;</span>	<span class="comment">/* pointer to next ring in q_vector */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_q_vector</span> *<span class="title">q_vector</span>;</span> <span class="comment">/* backpointer to host q_vector */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">net_device</span> *<span class="title">netdev</span>;</span>	<span class="comment">/* netdev ring belongs to */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device</span> *<span class="title">dev</span>;</span>		<span class="comment">/* device for DMA mapping */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_fwd_adapter</span> *<span class="title">l2_accel_priv</span>;</span></span><br><span class="line">    </span><br><span class="line">	<span class="comment">/* 环形队列缓冲区中的报文描述符数组 */</span></span><br><span class="line">	<span class="keyword">void</span> *desc;			<span class="comment">/* descriptor ring memory */</span></span><br><span class="line">    </span><br><span class="line">	<span class="comment">/* 与报文描述符数组一一对应的报文缓冲区对象 */</span></span><br><span class="line">	<span class="keyword">union</span> &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_tx_buffer</span> *<span class="title">tx_buffer_info</span>;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_rx_buffer</span> *<span class="title">rx_buffer_info</span>;</span></span><br><span class="line">	&#125;;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> state;</span><br><span class="line">	u8 __iomem *tail;  <span class="comment">/* 指向RDT寄存器对应的内核虚拟地址 */</span></span><br><span class="line">    </span><br><span class="line">	<span class="comment">/* 报文描述符数组对应的物理地址 */</span></span><br><span class="line">	<span class="keyword">dma_addr_t</span> dma;			<span class="comment">/* phys. address of descriptor ring */</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span> size;		<span class="comment">/* length in bytes */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 环形队列缓冲区中的报文描述符个数 */</span></span><br><span class="line">	u16 count;			<span class="comment">/* amount of descriptors */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* </span></span><br><span class="line"><span class="comment">	 * 环形队列缓冲区关联的rx队列索引，这个索引是用来在adapter-&gt;rx数组索引环形队列缓冲区的</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	u8 queue_index; <span class="comment">/* needed for multiqueue queue management */</span></span><br><span class="line">	u8 reg_idx;			<span class="comment">/* holds the special value that gets</span></span><br><span class="line"><span class="comment">					 * the hardware register offset</span></span><br><span class="line"><span class="comment">					 * associated with this ring, which is</span></span><br><span class="line"><span class="comment">					 * different for DCB and RSS modes</span></span><br><span class="line"><span class="comment">					 */</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * next_to_use是环形队列缓冲区中将要提供给硬件使用的第一个报文描述符的索引，对应的就是RDT寄存器</span></span><br><span class="line"><span class="comment">	 * next_to_clean是环形队列缓冲区中驱动将要处理的第一个报文描述符的索引</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	u16 next_to_use;</span><br><span class="line">	u16 next_to_clean;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> last_rx_timestamp;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">union</span> &#123;</span><br><span class="line">		u16 next_to_alloc;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">			u8 atr_sample_rate;</span><br><span class="line">			u8 atr_count;</span><br><span class="line">		&#125;;</span><br><span class="line">	&#125;;</span><br><span class="line"></span><br><span class="line">	u8 dcb_tc;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_queue_stats</span> <span class="title">stats</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">u64_stats_sync</span> <span class="title">syncp</span>;</span></span><br><span class="line">	<span class="keyword">union</span> &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_tx_queue_stats</span> <span class="title">tx_stats</span>;</span></span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_rx_queue_stats</span> <span class="title">rx_stats</span>;</span></span><br><span class="line">	&#125;;</span><br><span class="line">&#125; ____cacheline_internodealigned_in_smp;</span><br></pre></td></tr></table></figure>
+
+<p>　　struct ixgbe_ring对象中最重要的几个成员都已经做了注解，其中的desc成员就是报文描述符队列，从这里的实现也可以看出，报文描述符队列实际上是线性的，其逻辑上的环形操作是通过struct ixgbe_ring对象中的成员，如next_to_clean、next_to_alloc和next_to_use等来实现的。另外，struct ixgbe_ring对象中还有一个类型为dma_addr_t的dma成员，该成员就是desc成员对应的物理地址，有desc成员的内核虚拟地址进行一致性dma映射得到。这样ixgbe驱动可以通过desc来操作描述符环形队列，而网卡可以通过dma成员来操作描述符环形队列。<br>　　下面一起来看下ixgbe驱动是如何建立一个描述符环形队列管理对象的。其实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">ixgbe_setup_rx_resources</span><span class="params">(struct ixgbe_ring *rx_ring)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">device</span> *<span class="title">dev</span> = <span class="title">rx_ring</span>-&gt;<span class="title">dev</span>;</span></span><br><span class="line">	<span class="keyword">int</span> orig_node = dev_to_node(dev);</span><br><span class="line">	<span class="keyword">int</span> ring_node = <span class="number">-1</span>;</span><br><span class="line">	<span class="keyword">int</span> size;</span><br><span class="line"></span><br><span class="line">	size = <span class="keyword">sizeof</span>(struct ixgbe_rx_buffer) * rx_ring-&gt;count;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (rx_ring-&gt;q_vector)</span><br><span class="line">		ring_node = rx_ring-&gt;q_vector-&gt;numa_node;</span><br><span class="line"></span><br><span class="line">	rx_ring-&gt;rx_buffer_info = vzalloc_node(size, ring_node);</span><br><span class="line">	<span class="keyword">if</span> (!rx_ring-&gt;rx_buffer_info)</span><br><span class="line">		rx_ring-&gt;rx_buffer_info = vzalloc(size);</span><br><span class="line">	<span class="keyword">if</span> (!rx_ring-&gt;rx_buffer_info)</span><br><span class="line">		<span class="keyword">goto</span> err;</span><br><span class="line"></span><br><span class="line">	u64_stats_init(&amp;rx_ring-&gt;syncp);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* Round up to nearest 4K */</span></span><br><span class="line">	rx_ring-&gt;size = rx_ring-&gt;count * <span class="keyword">sizeof</span>(<span class="keyword">union</span> ixgbe_adv_rx_desc);</span><br><span class="line">	rx_ring-&gt;size = ALIGN(rx_ring-&gt;size, <span class="number">4096</span>);</span><br><span class="line"></span><br><span class="line">	set_dev_node(dev, ring_node);</span><br><span class="line">	rx_ring-&gt;desc = dma_alloc_coherent(dev,</span><br><span class="line">					   rx_ring-&gt;size,</span><br><span class="line">					   &amp;rx_ring-&gt;dma,</span><br><span class="line">					   GFP_KERNEL);</span><br><span class="line">	set_dev_node(dev, orig_node);</span><br><span class="line">	<span class="keyword">if</span> (!rx_ring-&gt;desc)</span><br><span class="line">		rx_ring-&gt;desc = dma_alloc_coherent(dev, rx_ring-&gt;size,</span><br><span class="line">						   &amp;rx_ring-&gt;dma, GFP_KERNEL);</span><br><span class="line">	<span class="keyword">if</span> (!rx_ring-&gt;desc)</span><br><span class="line">		<span class="keyword">goto</span> err;</span><br><span class="line"></span><br><span class="line">	rx_ring-&gt;next_to_clean = <span class="number">0</span>;</span><br><span class="line">	rx_ring-&gt;next_to_use = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">err:</span><br><span class="line">	vfree(rx_ring-&gt;rx_buffer_info);</span><br><span class="line">	rx_ring-&gt;rx_buffer_info = <span class="literal">NULL</span>;</span><br><span class="line">	dev_err(dev, <span class="string">"Unable to allocate memory for the Rx descriptor ring\n"</span>);</span><br><span class="line">	<span class="keyword">return</span> -ENOMEM;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　函数ixgbe_setup_rx_resources()处理流程很清晰：<br>　　1）、根据之前配置好的环形队列中报文接收描述符个数申请报文描述符数组所需要的内存，以及对应的用来管理报文缓冲区地址信息的缓冲区对象，这个时候缓冲区对象中用来存放报文内容的地址仍然是无效的，因为还没有申请内存，在函数ixgbe_alloc_rx_buffers()处理完成之后，缓冲区对象中存放报文内容的地址就是有效的，可以提供给网卡用来存放报文数据。此外，对报文接收描述符数组内存进行一致性dma映射，获取对应的物理地址，网卡需要使用物理地址，而不是虚拟地址。<br>　　2）、初始化描述符环形队列操作所涉及到的索引成员，包括next_to_use和next_to_clean。<br>　　经过ixgbe_setup_rx_resources()函数的处理，就已经成功创建了一个描述符环形的管理对象。接下来就需要告诉网卡这个描述符环形队列的信息，这个就是函数ixgbe_configure_rx_ring()所要做的事情了，其实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">ixgbe_configure_rx_ring</span><span class="params">(struct ixgbe_adapter *adapter,</span></span></span><br><span class="line"><span class="function"><span class="params">			     struct ixgbe_ring *ring)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_hw</span> *<span class="title">hw</span> = &amp;<span class="title">adapter</span>-&gt;<span class="title">hw</span>;</span></span><br><span class="line">    </span><br><span class="line">	<span class="comment">/* 环形队列缓冲区中报文描述符数组对应的物理地址 */</span></span><br><span class="line">	u64 rdba = ring-&gt;dma;</span><br><span class="line">	u32 rxdctl;</span><br><span class="line">	u8 reg_idx = ring-&gt;reg_idx;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* disable queue to avoid issues while updating state */</span></span><br><span class="line">	rxdctl = IXGBE_READ_REG(hw, IXGBE_RXDCTL(reg_idx));</span><br><span class="line">	ixgbe_disable_rx_queue(adapter, ring);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* </span></span><br><span class="line"><span class="comment">	 * 将报文描述符数组的首地址写入到RDBAH和RDBAL寄存器中，并将描述符数组的长度</span></span><br><span class="line"><span class="comment">	 * 写入到RDLEN寄存器中，这样网卡芯片就知道了报文描述符的信息，后续可以收到</span></span><br><span class="line"><span class="comment">	 * 合适的网络报文后，就会将报文存放到描述符里面的dma地址中，并递增内部的</span></span><br><span class="line"><span class="comment">	 * head寄存器值</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	IXGBE_WRITE_REG(hw, IXGBE_RDBAL(reg_idx), (rdba &amp; DMA_BIT_MASK(<span class="number">32</span>)));</span><br><span class="line">	IXGBE_WRITE_REG(hw, IXGBE_RDBAH(reg_idx), (rdba &gt;&gt; <span class="number">32</span>));</span><br><span class="line">	IXGBE_WRITE_REG(hw, IXGBE_RDLEN(reg_idx),</span><br><span class="line">			ring-&gt;count * <span class="keyword">sizeof</span>(<span class="keyword">union</span> ixgbe_adv_rx_desc));</span><br><span class="line">	<span class="comment">/* Force flushing of IXGBE_RDLEN to prevent MDD */</span></span><br><span class="line">	IXGBE_WRITE_FLUSH(hw);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * 初始状态下，网卡芯片的head和tail指针都为0，表示网卡没有可用的报文描述符</span></span><br><span class="line"><span class="comment">	 * 等后面驱动申请了n个报文描述符中的dma地址后，就会将tail寄存器值设置为n，</span></span><br><span class="line"><span class="comment">	 * 表示目前网卡可用的报文描述符数量为n个。这样，等网卡收到了合适的报文之后</span></span><br><span class="line"><span class="comment">	 * 就会存到报文描述符中的dma地址处。</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	IXGBE_WRITE_REG(hw, IXGBE_RDH(reg_idx), <span class="number">0</span>);</span><br><span class="line">	IXGBE_WRITE_REG(hw, IXGBE_RDT(reg_idx), <span class="number">0</span>);</span><br><span class="line">	ring-&gt;tail = adapter-&gt;io_addr + IXGBE_RDT(reg_idx);</span><br><span class="line"></span><br><span class="line">	ixgbe_configure_srrctl(adapter, ring);</span><br><span class="line">	ixgbe_configure_rscctl(adapter, ring);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (hw-&gt;mac.type == ixgbe_mac_82598EB) &#123;</span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * enable cache line friendly hardware writes:</span></span><br><span class="line"><span class="comment">		 * PTHRESH=32 descriptors (half the internal cache),</span></span><br><span class="line"><span class="comment">		 * this also removes ugly rx_no_buffer_count increment</span></span><br><span class="line"><span class="comment">		 * HTHRESH=4 descriptors (to minimize latency on fetch)</span></span><br><span class="line"><span class="comment">		 * WTHRESH=8 burst writeback up to two cache lines</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		rxdctl &amp;= ~<span class="number">0x3FFFFF</span>;</span><br><span class="line">		rxdctl |=  <span class="number">0x080420</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* enable receive descriptor ring */</span></span><br><span class="line">	rxdctl |= IXGBE_RXDCTL_ENABLE;</span><br><span class="line">	IXGBE_WRITE_REG(hw, IXGBE_RXDCTL(reg_idx), rxdctl);</span><br><span class="line"></span><br><span class="line">	ixgbe_rx_desc_queue_enable(adapter, ring);</span><br><span class="line">    </span><br><span class="line">	<span class="comment">/* 申请报文描述符中用于存储报文数据的内存 */</span></span><br><span class="line">	ixgbe_alloc_rx_buffers(ring, ixgbe_desc_unused(ring));</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　从该函数的实现就可以看到，网卡驱动就是通过将接收报文描述符数组对应的物理地址写入到RDBA寄存器，并初始化RDH和RDT寄存器。通过写RDBA、RDH和RDT寄存器，网卡就知道了当前的描述符环形队列的信息。接着调用函数ixgbe_alloc_rx_buffers()申请用来存放报文数据的内存，并将对应的物理地址保存到接收描述符中，然后设置RDT寄存器，这样网卡就可以使用RDH和RDT之间的描述符进行接收报文处理了，ixgbe_alloc_rx_buffers()函数的实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">ixgbe_alloc_rx_buffers</span><span class="params">(struct ixgbe_ring *rx_ring, u16 cleaned_count)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="keyword">union</span> ixgbe_adv_rx_desc *rx_desc;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_rx_buffer</span> *<span class="title">bi</span>;</span></span><br><span class="line">	u16 i = rx_ring-&gt;next_to_use;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* nothing to do */</span></span><br><span class="line">	<span class="keyword">if</span> (!cleaned_count)</span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * 获取下一个将要提供给硬件使用的报文描述符(对应的索引为rx_ring-&gt;next_to_use)，</span></span><br><span class="line"><span class="comment">	 * 以及报文描述符对应的缓冲区对象，缓冲区对象中保存了用于存放报文数据的内存地址信息，</span></span><br><span class="line"><span class="comment">	 * 当然用于存放报文的内存对应的物理地址也会保存到报文描述符中。</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	rx_desc = IXGBE_RX_DESC(rx_ring, i);</span><br><span class="line">	bi = &amp;rx_ring-&gt;rx_buffer_info[i];</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * 这个地方执行这个计算的目的是什么呢?我们知道报文描述符队列在逻辑上是环形的(</span></span><br><span class="line"><span class="comment">	 * 实际上是线性的，因为内存地址是线性分布的)，当我们操作这个队列到达末尾的时候，</span></span><br><span class="line"><span class="comment">	 * 通过将索引重新指向队列开头来实现环形操作。所以呢，在计算之后，i表示的就是</span></span><br><span class="line"><span class="comment">	 * 目前位置距离队列末尾之间还没有提供给硬件使用的报文描述符个数的相反数，也就是</span></span><br><span class="line"><span class="comment">	 * 当前处理位置和队列末尾距离。</span></span><br><span class="line"><span class="comment">	 * 在下面的循环中，每处理一个报文描述符(申请用于存放报文数据的内存)都会将i递增，</span></span><br><span class="line"><span class="comment">	 * 当i等于0的时候，说明达到了队列的末尾，下次处理就要从队列头开始了，从而实现</span></span><br><span class="line"><span class="comment">	 * 队列的环形操作。</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	i -= rx_ring-&gt;count;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">do</span> &#123;</span><br><span class="line">		<span class="comment">/* </span></span><br><span class="line"><span class="comment">		 * 申请用于存放报文数据的内存，并进行dma流式映射</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (!ixgbe_alloc_mapped_page(rx_ring, bi))</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/*</span></span><br><span class="line"><span class="comment">		 * Refresh the desc even if buffer_addrs didn't change</span></span><br><span class="line"><span class="comment">		 * because each write-back erases this info.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="comment">/* rx_desc-&gt;read.pkt_addr存放的地址就是用于存放报文的dma起始地址 */</span></span><br><span class="line">		rx_desc-&gt;read.pkt_addr = cpu_to_le64(bi-&gt;dma + bi-&gt;page_offset);</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* rx_desc和bi递增，指向下一个描述符和对应的缓冲区对象 */</span></span><br><span class="line">		rx_desc++;</span><br><span class="line">		bi++;</span><br><span class="line">		i++;</span><br><span class="line">		<span class="comment">/* </span></span><br><span class="line"><span class="comment">		 * 如果i == 0，说明操作环形队列缓冲区已经转了一圈了，这个时候就需要重新让</span></span><br><span class="line"><span class="comment">		 * rx_desc和bi分别指向描述符数组和缓冲区数组的起始位置，从头开始处理，当然</span></span><br><span class="line"><span class="comment">		 * 对应的i值也就要重新计算了，此时的值为队列中描述符个数的相反数。</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (unlikely(!i)) &#123;</span><br><span class="line">			<span class="comment">/* </span></span><br><span class="line"><span class="comment">			 * 考虑下为什么描述符环形队列中已经被网卡使用过的描述符中存放报文内容的</span></span><br><span class="line"><span class="comment">			 * 内存需要重新申请并进行流式dma映射呢?我们知道，一个描述符中用来存放</span></span><br><span class="line"><span class="comment">			 * 报文的内存(实际上是一个页)，接收完报文后如果空间足够，有可能被其他描述符</span></span><br><span class="line"><span class="comment">			 * 重用，或者报文较大而产生分片，这个时候并不会从描述符中存放报文的内存中</span></span><br><span class="line"><span class="comment">			 * 将报文数据拷贝到skb-&gt;data中，而是将描述符中存放报文的页内存挂载到</span></span><br><span class="line"><span class="comment">			 * skb_shinfo(skb)-&gt;frags数组中，无论前面的哪种情况，本描述符中用于</span></span><br><span class="line"><span class="comment">			 * 存放报文数据的内存在本描述符用于接收报文之后都不能再被该描述符继续使用了，</span></span><br><span class="line"><span class="comment">			 * 所需每次都需要重新申请内存，或者重用之前的报文描述符的页内存。这也是为什么</span></span><br><span class="line"><span class="comment">			 * 在函数ixgbe_fetch_rx_buffer()末尾会将rx_buffer-&gt;page置空的原因。</span></span><br><span class="line"><span class="comment">			 */</span></span><br><span class="line">			rx_desc = IXGBE_RX_DESC(rx_ring, <span class="number">0</span>);</span><br><span class="line">			bi = rx_ring-&gt;rx_buffer_info;</span><br><span class="line">			i -= rx_ring-&gt;count;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* clear the status bits for the next_to_use descriptor */</span></span><br><span class="line">		rx_desc-&gt;wb.upper.status_error = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">		cleaned_count--;</span><br><span class="line">	&#125; <span class="keyword">while</span> (cleaned_count);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	 * i加上rx_ring-&gt;count之后指向的就是最后一个可用(对网卡芯片来说)的报文描述符的</span></span><br><span class="line"><span class="comment">	 * 下一个位置,，这个时候需要将这个索引值i写入到网卡芯片的tail寄存器中，让网卡</span></span><br><span class="line"><span class="comment">	 * 芯片知道目前可用的报文描述数量(tail - head)</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	i += rx_ring-&gt;count;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (rx_ring-&gt;next_to_use != i) &#123;</span><br><span class="line">		<span class="comment">/* </span></span><br><span class="line"><span class="comment">		 * 因为i指向的是最后一个可用报文描述符的下一个位置，这个位置也是下一次要</span></span><br><span class="line"><span class="comment">		 * 提供给网卡芯片使用的报文描述符的位置</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		rx_ring-&gt;next_to_use = i;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* update next to alloc since we have filled the ring */</span></span><br><span class="line">		rx_ring-&gt;next_to_alloc = i;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* Force memory writes to complete before letting h/w</span></span><br><span class="line"><span class="comment">		 * know there are new descriptors to fetch.  (Only</span></span><br><span class="line"><span class="comment">		 * applicable for weak-ordered memory model archs,</span></span><br><span class="line"><span class="comment">		 * such as IA-64).</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		wmb();</span><br><span class="line">		<span class="comment">/* 将i值写入到tail寄存器中 */</span></span><br><span class="line">		writel(i, rx_ring-&gt;tail);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　补充说明：RDT寄存器由网卡驱动在提供报文接收描述符给网卡之后更新，而RDH寄存器由网卡在回写一个报文接收描述符给驱动之后更新。</p>
+<h2 id="ixgbe网卡驱动napi接口的处理"><a href="#ixgbe网卡驱动napi接口的处理" class="headerlink" title="ixgbe网卡驱动napi接口的处理"></a>ixgbe网卡驱动napi接口的处理</h2><p>　　NAPI是Linux中综合了中断和轮询方式的网卡数据处理API。下面描述下ixgbe中是如何使用NAPI方式来进行收包处理的。</p>
+<h3 id="NAPI对象"><a href="#NAPI对象" class="headerlink" title="NAPI对象"></a>NAPI对象</h3><p>　　在Linux中，NAPI接口提供了一个NAPI对象，这个是设备使用NAPI接口进行数据包处理的必要条件，先来看下其定义：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">napi_struct</span> &#123;</span></span><br><span class="line">	<span class="comment">/* The poll_list must only be managed by the entity which</span></span><br><span class="line"><span class="comment">	 * changes the state of the NAPI_STATE_SCHED bit.  This means</span></span><br><span class="line"><span class="comment">	 * whoever atomically sets that bit can add this napi_struct</span></span><br><span class="line"><span class="comment">	 * to the per-CPU poll_list, and whoever clears that bit</span></span><br><span class="line"><span class="comment">	 * can remove from the list right before clearing the bit.</span></span><br><span class="line"><span class="comment">	 */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>	<span class="title">poll_list</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span>		state;</span><br><span class="line">	<span class="keyword">int</span>			weight;</span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span>		gro_count;</span><br><span class="line">	<span class="keyword">int</span>			(*poll)(struct napi_struct *, <span class="keyword">int</span>);</span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> CONFIG_NETPOLL</span></span><br><span class="line">	<span class="keyword">spinlock_t</span>		poll_lock;</span><br><span class="line">	<span class="keyword">int</span>			poll_owner;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">net_device</span>	*<span class="title">dev</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sk_buff</span>		*<span class="title">gro_list</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">sk_buff</span>		*<span class="title">skb</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">hrtimer</span>		<span class="title">timer</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">list_head</span>	<span class="title">dev_list</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">hlist_node</span>	<span class="title">napi_hash_node</span>;</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">int</span>		napi_id;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>　　一般来说，如果某个设备要使用NAPI接口进行数据包处理，那么该设备会在自己的设备对象中定义一个struct napi_struct类型的对象成员。在第二部分讲到过，ixgbe驱动中每个中断向量会关联一个中断号，从而在硬中断处理函数能获取到中断向量，而如果利用NAPI进行数据包处理的话，也就必须要获取到对应的struct napi_struct类型的对象，所以自然而然地ixgbe驱动将struct napi_struct类型的对象定义在了中断向量中。<br>　　下面对其中的部分重要成员进行简单的介绍：<br>　　1）、 poll_list。用于将本设备加入到cpu私有数据中类型为struct softnet_data的对象的待轮询设备链表中。<br>　　2）、state。设备的状态，有如下几种：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> &#123;</span><br><span class="line">	NAPI_STATE_SCHED,	<span class="comment">/* Poll is scheduled */</span></span><br><span class="line">	NAPI_STATE_DISABLE,	<span class="comment">/* Disable pending */</span></span><br><span class="line">	NAPI_STATE_NPSVC,	<span class="comment">/* Netpoll - don't dequeue from poll_list */</span></span><br><span class="line">	NAPI_STATE_HASHED,	<span class="comment">/* In NAPI hash (busy polling possible) */</span></span><br><span class="line">	NAPI_STATE_NO_BUSY_POLL,<span class="comment">/* Do not add in napi_hash, no busy polling */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<p>　　3）、weight。设备每次轮询所能处理的包的最大数量。<br>　　4）、poll。设备注册的轮询回调，在该回调中一般会遍历设备的所有rx队列，取出报文，送往上层处理。</p>
+<h3 id="NAPI初始化"><a href="#NAPI初始化" class="headerlink" title="NAPI初始化"></a>NAPI初始化</h3><p>　　从驱动实现我们知道，ixgbe驱动在中断向量中定义了一个类型为struct napi_struct的NAPI实例。在ixgbe驱动初始化的时候，会在创建中断向量的时候初始化其对应NAPI实例，实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">int</span> <span class="title">ixgbe_alloc_q_vector</span><span class="params">(struct ixgbe_adapter *adapter,</span></span></span><br><span class="line"><span class="function"><span class="params">				<span class="keyword">int</span> v_count, <span class="keyword">int</span> v_idx,</span></span></span><br><span class="line"><span class="function"><span class="params">				<span class="keyword">int</span> txr_count, <span class="keyword">int</span> txr_idx,</span></span></span><br><span class="line"><span class="function"><span class="params">				<span class="keyword">int</span> rxr_count, <span class="keyword">int</span> rxr_idx)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_q_vector</span> *<span class="title">q_vector</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_ring</span> *<span class="title">ring</span>;</span></span><br><span class="line">	<span class="keyword">int</span> node = NUMA_NO_NODE;</span><br><span class="line">	<span class="keyword">int</span> cpu = <span class="number">-1</span>;</span><br><span class="line">	<span class="keyword">int</span> ring_count, size;</span><br><span class="line">	u8 tcs = netdev_get_num_tc(adapter-&gt;netdev);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* 计算这个中断向量所需要申请的环形队列缓冲区的总数量 */</span></span><br><span class="line">	ring_count = txr_count + rxr_count;</span><br><span class="line">    </span><br><span class="line">	<span class="comment">/* 申请中断向量内存以及环形队列缓冲区对应的柔性数组内存。 */</span></span><br><span class="line">	size = <span class="keyword">sizeof</span>(struct ixgbe_q_vector) +</span><br><span class="line">	       (<span class="keyword">sizeof</span>(struct ixgbe_ring) * ring_count);</span><br><span class="line">	……</span><br><span class="line">	<span class="comment">/* allocate q_vector and rings */</span></span><br><span class="line">	<span class="comment">/* numa架构下，在cpu所在的本地内存申请中断向量所需内存 */</span></span><br><span class="line">	q_vector = kzalloc_node(size, GFP_KERNEL, node);</span><br><span class="line">	<span class="keyword">if</span> (!q_vector)</span><br><span class="line">		q_vector = kzalloc(size, GFP_KERNEL);</span><br><span class="line">	<span class="keyword">if</span> (!q_vector)</span><br><span class="line">		<span class="keyword">return</span> -ENOMEM;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* initialize NAPI */</span></span><br><span class="line">	<span class="comment">/* 初始化napi收包方式 */</span></span><br><span class="line">	netif_napi_add(adapter-&gt;netdev, &amp;q_vector-&gt;napi,</span><br><span class="line">		       ixgbe_poll, <span class="number">64</span>);</span><br><span class="line">	……</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　从函数ixgbe_alloc_q_vector()调用netif_napi_add()初始化NAPI对象可以看到，ixgbe驱动注册的poll回调钩子是ixgbe_poll()，而每次轮询最大可处理的数据包为64个。</p>
+<h3 id="NAPI调度"><a href="#NAPI调度" class="headerlink" title="NAPI调度"></a>NAPI调度</h3><p>　　在ixgbe驱动中因为使用了NAPI接口进行数据包处理，所以对应的上半部实现就变成了当硬中断触发后，在硬中断处理函数中调用NAPI的调度接口napi_schedule_irqoff()将设备加入到cpu私有数据中类型为struct softnet_data的对象的待轮询设备链表中，并触发软中断。以msi-x中断模式为例，其对应的具体实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> irqreturn_t <span class="title">ixgbe_msix_clean_rings</span><span class="params">(<span class="keyword">int</span> irq, <span class="keyword">void</span> *data)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">ixgbe_q_vector</span> *<span class="title">q_vector</span> = <span class="title">data</span>;</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/* EIAM disabled interrupts (on this vector) for us */</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (q_vector-&gt;rx.ring || q_vector-&gt;tx.ring)</span><br><span class="line">		napi_schedule_irqoff(&amp;q_vector-&gt;napi);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> IRQ_HANDLED;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　而下半部的处理就是在网络子系统的软中断处理函数net_rx_action()中遍历cpu私有数据中类型为struct softnet_data的对象中的待轮询设备链表，依次调用每个设备注册的poll回调钩子进行报文接收处理，其对应的具体实现如下：</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> __<span class="function">latent_entropy <span class="keyword">void</span> <span class="title">net_rx_action</span><span class="params">(struct softirq_action *h)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">softnet_data</span> *<span class="title">sd</span> = <span class="title">this_cpu_ptr</span>(&amp;<span class="title">softnet_data</span>);</span></span><br><span class="line">	<span class="keyword">unsigned</span> <span class="keyword">long</span> time_limit = jiffies + <span class="number">2</span>;</span><br><span class="line">	<span class="keyword">int</span> budget = netdev_budget;</span><br><span class="line">	LIST_HEAD(<span class="built_in">list</span>);</span><br><span class="line">	LIST_HEAD(repoll);</span><br><span class="line"></span><br><span class="line">	local_irq_disable();</span><br><span class="line">	list_splice_init(&amp;sd-&gt;poll_list, &amp;<span class="built_in">list</span>);</span><br><span class="line">	local_irq_enable();</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (;;) &#123;</span><br><span class="line">		<span class="class"><span class="keyword">struct</span> <span class="title">napi_struct</span> *<span class="title">n</span>;</span></span><br><span class="line"></span><br><span class="line">		<span class="keyword">if</span> (list_empty(&amp;<span class="built_in">list</span>)) &#123;</span><br><span class="line">			<span class="keyword">if</span> (!sd_has_rps_ipi_waiting(sd) &amp;&amp; list_empty(&amp;repoll))</span><br><span class="line">				<span class="keyword">return</span>;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line"></span><br><span class="line">		n = list_first_entry(&amp;<span class="built_in">list</span>, struct napi_struct, poll_list);</span><br><span class="line">		budget -= napi_poll(n, &amp;repoll);</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* If softirq window is exhausted then punt.</span></span><br><span class="line"><span class="comment">		 * Allow this to run for 2 jiffies since which will allow</span></span><br><span class="line"><span class="comment">		 * an average latency of 1.5/HZ.</span></span><br><span class="line"><span class="comment">		 */</span></span><br><span class="line">		<span class="keyword">if</span> (unlikely(budget &lt;= <span class="number">0</span> ||</span><br><span class="line">			     time_after_eq(jiffies, time_limit))) &#123;</span><br><span class="line">			sd-&gt;time_squeeze++;</span><br><span class="line">			<span class="keyword">break</span>;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	__kfree_skb_flush();</span><br><span class="line">	local_irq_disable();</span><br><span class="line"></span><br><span class="line">	list_splice_tail_init(&amp;sd-&gt;poll_list, &amp;<span class="built_in">list</span>);</span><br><span class="line">	list_splice_tail(&amp;repoll, &amp;<span class="built_in">list</span>);</span><br><span class="line">	list_splice(&amp;<span class="built_in">list</span>, &amp;sd-&gt;poll_list);</span><br><span class="line">	<span class="keyword">if</span> (!list_empty(&amp;sd-&gt;poll_list))</span><br><span class="line">		__raise_softirq_irqoff(NET_RX_SOFTIRQ);</span><br><span class="line"></span><br><span class="line">	net_rps_action_and_irq_enable(sd);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　上面说到过，在下半部的软中断处理函数中会调用设备注册的回调函数poll进行收包处理，而ixgbe驱动中对应的轮询回调函数就是ixgbe_poll()。在这个函数中会遍历NAPI对象关联的中断向量中的所有RX队列，将收到的每一个报文通过调用函数__netif_receive_skb()送往上层协议栈进行处理，具体处理细节可以参考驱动实现。<br>　　通过上面对ixgbe驱动中使用NAPI接口的描述，我们可以总结出NAPI接口的数据包接收流程如下：</p>
+<div align="center">  </div>
+　　注：上面的流程图中NAPI假设上层会关闭和打开的硬中断
+
+<p><strong>参考：</strong><br>1、<a href="http://www.intel.com/content/www/us/en/embedded/products/networking/82599-10-gbe-controller-datasheet.html" target="_blank" rel="noopener">http://www.intel.com/content/www/us/en/embedded/products/networking/82599-10-gbe-controller-datasheet.html</a></p>
+<p>** 本文作者： TitenWang **
+** 本文链接： <a href="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/">https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/</a> **
+** 版权声明： 本博客所有文章除特别声明外，均采用<a href="https://creativecommons.org/licenses/by-nc-nd/3.0/cn/" target="_blank" rel="noopener"> CC BY-NC-ND 3.0 </a>许可协议。**</p>
+
+      
+    </div>
+
+    
+
+    
+    
+    
+
+    
+
+    
+      
+    
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
+          
+            <a href="/tags/eBPF/" rel="tag"># eBPF</a>
+          
+            <a href="/tags/网卡驱动/" rel="tag"># 网卡驱动</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2017/03/26/ebpf-map/" rel="next" title="eBPF中的map">
+                <i class="fa fa-chevron-left"></i> eBPF中的map
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/2017/05/01/intel-82599-transmit-packet/" rel="prev" title="基于82599网卡的二层网络数据包发送">
+                基于82599网卡的二层网络数据包发送 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+  </div>
+
+
+          </div>
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image" src="/images/book.jpg" alt="TitenWang">
+            
+              <p class="site-author-name" itemprop="name">TitenWang</p>
+              <div class="site-description motion-element" itemprop="description">The Next Maigc</div>
+          </div>
+
+          
+            <nav class="site-state motion-element">
+              
+                <div class="site-state-item site-state-posts">
+                
+                  <a href="/archives/">
+                
+                    <span class="site-state-item-count">13</span>
+                    <span class="site-state-item-name">日志</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-categories">
+                  
+                    
+                      <a href="/categories/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">3</span>
+                    <span class="site-state-item-name">分类</span>
+                  </a>
+                </div>
+              
+
+              
+                
+                
+                <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
+                  
+                    
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                      
+                    
+                    <span class="site-state-item-count">6</span>
+                    <span class="site-state-item-name">标签</span>
+                  </a>
+                </div>
+              
+            </nav>
+          
+
+          
+
+          
+
+          
+            <div class="links-of-author motion-element">
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="https://github.com/TitenWang" title="GitHub &rarr; https://github.com/TitenWang" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+                </span>
+              
+                <span class="links-of-author-item">
+                  
+                  
+                    
+                  
+                  
+                    
+                  
+                  <a href="/wtb326@163.com" title="E-Mail &rarr; wtb326@163.com"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                </span>
+              
+            </div>
+          
+
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                推荐阅读
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="http://www.sdu.edu.cn/" title="http://www.sdu.edu.cn/" rel="noopener" target="_blank">Shandong University</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+            
+          
+          
+
+        </div>
+      </div>
+
+      
+      <!--noindex-->
+        <div class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+            
+            
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#82599网卡和数据包接收相关的内容"><span class="nav-text">82599网卡和数据包接收相关的内容</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#传统格式报文接收描述符"><span class="nav-text">传统格式报文接收描述符</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ixgbe网卡驱动napi接口的处理"><span class="nav-text">ixgbe网卡驱动napi接口的处理</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#NAPI对象"><span class="nav-text">NAPI对象</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#NAPI初始化"><span class="nav-text">NAPI初始化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#NAPI调度"><span class="nav-text">NAPI调度</span></a></li></ol></li></ol></div>
+            
+
+          </div>
+        </div>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+  
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2019</span>
+  <span class="with-love" id="animate">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">TitenWang</span>
+
+  
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a href="https://hexo.io" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v3.8.0</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 – <a href="https://theme-next.org" class="theme-link" rel="noopener" target="_blank">NexT.Mist</a> v7.1.1</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+    
+
+    
+  </div>
+
+  
+
+<script>
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  <script src="/lib/jquery/index.js?v=2.1.3"></script>
+
+  
+  <script src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+
+  
+  <script src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+
+
+  
+
+
+  <script src="/js/utils.js?v=7.1.1"></script>
+
+  <script src="/js/motion.js?v=7.1.1"></script>
+
+
+
+  
+  
+
+
+  <script src="/js/schemes/muse.js?v=7.1.1"></script>
+
+
+
+
+  
+  <script src="/js/scrollspy.js?v=7.1.1"></script>
+<script src="/js/post-details.js?v=7.1.1"></script>
+
+
+
+  
+
+
+  <script src="/js/next-boot.js?v=7.1.1"></script>
+
+
+  
+
+  
+
+  
+
+  
+
+
+  
+
+
+  
+  <script>
+    // Popup Window;
+    var isfetched = false;
+    var isXml = true;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length === 0) {
+      search_path = "search.xml";
+    } else if (/json$/i.test(search_path)) {
+      isXml = false;
+    }
+    var path = "/" + search_path;
+    // monitor main search box;
+
+    var onPopupClose = function (e) {
+      $('.popup').hide();
+      $('#local-search-input').val('');
+      $('.search-result-list').remove();
+      $('#no-result').remove();
+      $(".local-search-pop-overlay").remove();
+      $('body').css('overflow', '');
+    }
+
+    function proceedsearch() {
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay"></div>')
+        .css('overflow', 'hidden');
+      $('.search-popup-overlay').click(onPopupClose);
+      $('.popup').toggle();
+      var $localSearchInput = $('#local-search-input');
+      $localSearchInput.attr("autocapitalize", "none");
+      $localSearchInput.attr("autocorrect", "off");
+      $localSearchInput.focus();
+    }
+
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+      'use strict';
+
+      // start loading animation
+      $("body")
+        .append('<div class="search-popup-overlay local-search-pop-overlay">' +
+          '<div id="search-loading-icon">' +
+          '<i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>' +
+          '</div>' +
+          '</div>')
+        .css('overflow', 'hidden');
+      $("#search-loading-icon").css('margin', '20% auto 0 auto').css('text-align', 'center');
+
+      
+
+      $.ajax({
+        url: path,
+        dataType: isXml ? "xml" : "json",
+        async: true,
+        success: function(res) {
+          // get the contents from search data
+          isfetched = true;
+          $('.popup').detach().appendTo('.header-inner');
+          var datas = isXml ? $("entry", res).map(function() {
+            return {
+              title: $("title", this).text(),
+              content: $("content",this).text(),
+              url: $("url" , this).text()
+            };
+          }).get() : res;
+          var input = document.getElementById(search_id);
+          var resultContent = document.getElementById(content_id);
+          var inputEventFunction = function() {
+            var searchText = input.value.trim().toLowerCase();
+            var keywords = searchText.split(/[\s\-]+/);
+            if (keywords.length > 1) {
+              keywords.push(searchText);
+            }
+            var resultItems = [];
+            if (searchText.length > 0) {
+              // perform local searching
+              datas.forEach(function(data) {
+                var isMatch = false;
+                var hitCount = 0;
+                var searchTextCount = 0;
+                var title = data.title.trim();
+                var titleInLowerCase = title.toLowerCase();
+                var content = data.content.trim().replace(/<[^>]+>/g,"");
+                
+                var contentInLowerCase = content.toLowerCase();
+                var articleUrl = decodeURIComponent(data.url).replace(/\/{2,}/g, '/');
+                var indexOfTitle = [];
+                var indexOfContent = [];
+                // only match articles with not empty titles
+                if(title != '') {
+                  keywords.forEach(function(keyword) {
+                    function getIndexByWord(word, text, caseSensitive) {
+                      var wordLen = word.length;
+                      if (wordLen === 0) {
+                        return [];
+                      }
+                      var startPosition = 0, position = [], index = [];
+                      if (!caseSensitive) {
+                        text = text.toLowerCase();
+                        word = word.toLowerCase();
+                      }
+                      while ((position = text.indexOf(word, startPosition)) > -1) {
+                        index.push({position: position, word: word});
+                        startPosition = position + wordLen;
+                      }
+                      return index;
+                    }
+
+                    indexOfTitle = indexOfTitle.concat(getIndexByWord(keyword, titleInLowerCase, false));
+                    indexOfContent = indexOfContent.concat(getIndexByWord(keyword, contentInLowerCase, false));
+                  });
+                  if (indexOfTitle.length > 0 || indexOfContent.length > 0) {
+                    isMatch = true;
+                    hitCount = indexOfTitle.length + indexOfContent.length;
+                  }
+                }
+
+                // show search results
+
+                if (isMatch) {
+                  // sort index by position of keyword
+
+                  [indexOfTitle, indexOfContent].forEach(function (index) {
+                    index.sort(function (itemLeft, itemRight) {
+                      if (itemRight.position !== itemLeft.position) {
+                        return itemRight.position - itemLeft.position;
+                      } else {
+                        return itemLeft.word.length - itemRight.word.length;
+                      }
+                    });
+                  });
+
+                  // merge hits into slices
+
+                  function mergeIntoSlice(text, start, end, index) {
+                    var item = index[index.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    var hits = [];
+                    var searchTextCountInSlice = 0;
+                    while (position + word.length <= end && index.length != 0) {
+                      if (word === searchText) {
+                        searchTextCountInSlice++;
+                      }
+                      hits.push({position: position, length: word.length});
+                      var wordEnd = position + word.length;
+
+                      // move to next position of hit
+
+                      index.pop();
+                      while (index.length != 0) {
+                        item = index[index.length - 1];
+                        position = item.position;
+                        word = item.word;
+                        if (wordEnd > position) {
+                          index.pop();
+                        } else {
+                          break;
+                        }
+                      }
+                    }
+                    searchTextCount += searchTextCountInSlice;
+                    return {
+                      hits: hits,
+                      start: start,
+                      end: end,
+                      searchTextCount: searchTextCountInSlice
+                    };
+                  }
+
+                  var slicesOfTitle = [];
+                  if (indexOfTitle.length != 0) {
+                    slicesOfTitle.push(mergeIntoSlice(title, 0, title.length, indexOfTitle));
+                  }
+
+                  var slicesOfContent = [];
+                  while (indexOfContent.length != 0) {
+                    var item = indexOfContent[indexOfContent.length - 1];
+                    var position = item.position;
+                    var word = item.word;
+                    // cut out 100 characters
+                    var start = position - 20;
+                    var end = position + 80;
+                    if(start < 0){
+                      start = 0;
+                    }
+                    if (end < position + word.length) {
+                      end = position + word.length;
+                    }
+                    if(end > content.length){
+                      end = content.length;
+                    }
+                    slicesOfContent.push(mergeIntoSlice(content, start, end, indexOfContent));
+                  }
+
+                  // sort slices in content by search text's count and hits' count
+
+                  slicesOfContent.sort(function (sliceLeft, sliceRight) {
+                    if (sliceLeft.searchTextCount !== sliceRight.searchTextCount) {
+                      return sliceRight.searchTextCount - sliceLeft.searchTextCount;
+                    } else if (sliceLeft.hits.length !== sliceRight.hits.length) {
+                      return sliceRight.hits.length - sliceLeft.hits.length;
+                    } else {
+                      return sliceLeft.start - sliceRight.start;
+                    }
+                  });
+
+                  // select top N slices in content
+
+                  var upperBound = parseInt('1');
+                  if (upperBound >= 0) {
+                    slicesOfContent = slicesOfContent.slice(0, upperBound);
+                  }
+
+                  // highlight title and content
+
+                  function highlightKeyword(text, slice) {
+                    var result = '';
+                    var prevEnd = slice.start;
+                    slice.hits.forEach(function (hit) {
+                      result += text.substring(prevEnd, hit.position);
+                      var end = hit.position + hit.length;
+                      result += '<b class="search-keyword">' + text.substring(hit.position, end) + '</b>';
+                      prevEnd = end;
+                    });
+                    result += text.substring(prevEnd, slice.end);
+                    return result;
+                  }
+
+                  var resultItem = '';
+
+                  if (slicesOfTitle.length != 0) {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + highlightKeyword(title, slicesOfTitle[0]) + "</a>";
+                  } else {
+                    resultItem += "<li><a href='" + articleUrl + "' class='search-result-title'>" + title + "</a>";
+                  }
+
+                  slicesOfContent.forEach(function (slice) {
+                    resultItem += "<a href='" + articleUrl + "'>" +
+                      "<p class=\"search-result\">" + highlightKeyword(content, slice) +
+                      "...</p>" + "</a>";
+                  });
+
+                  resultItem += "</li>";
+                  resultItems.push({
+                    item: resultItem,
+                    searchTextCount: searchTextCount,
+                    hitCount: hitCount,
+                    id: resultItems.length
+                  });
+                }
+              })
+            };
+            if (keywords.length === 1 && keywords[0] === "") {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-search fa-5x"></i></div>'
+            } else if (resultItems.length === 0) {
+              resultContent.innerHTML = '<div id="no-result"><i class="fa fa-frown-o fa-5x"></i></div>'
+            } else {
+              resultItems.sort(function (resultLeft, resultRight) {
+                if (resultLeft.searchTextCount !== resultRight.searchTextCount) {
+                  return resultRight.searchTextCount - resultLeft.searchTextCount;
+                } else if (resultLeft.hitCount !== resultRight.hitCount) {
+                  return resultRight.hitCount - resultLeft.hitCount;
+                } else {
+                  return resultRight.id - resultLeft.id;
+                }
+              });
+              var searchResultList = '<ul class=\"search-result-list\">';
+              resultItems.forEach(function (result) {
+                searchResultList += result.item;
+              })
+              searchResultList += "</ul>";
+              resultContent.innerHTML = searchResultList;
+            }
+          }
+
+          if ('auto' === 'auto') {
+            input.addEventListener('input', inputEventFunction);
+          } else {
+            $('.search-icon').click(inputEventFunction);
+            input.addEventListener('keypress', function (event) {
+              if (event.keyCode === 13) {
+                inputEventFunction();
+              }
+            });
+          }
+
+          // remove loading animation
+          $(".local-search-pop-overlay").remove();
+          $('body').css('overflow', '');
+
+          proceedsearch();
+        }
+      });
+    }
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched === false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+    });
+
+    $('.popup-btn-close').click(onPopupClose);
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+    $(document).on('keyup', function (event) {
+      var shouldDismissSearchPopup = event.which === 27 &&
+        $('.search-popup').is(':visible');
+      if (shouldDismissSearchPopup) {
+        onPopupClose();
+      }
+    });
+  </script>
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
