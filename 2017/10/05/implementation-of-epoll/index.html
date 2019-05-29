@@ -97,7 +97,7 @@
 
 
   <meta name="description" content="epoll是Linux内核为处理大批量文件描述符而设计的IO多路复用机制，它能显著提高程序在存在大量并发连接而只有少部分活跃连接情况下的系统CPU利用率。epoll之所以可以做到如此高的效率是因为它在获取就绪事件的时候，并不会遍历所有被监听的文件描述符集，而只会遍历那些被设备IO事件异步唤醒而加入就绪链表的文件描述符集。">
-<meta name="keywords" content="eBPF,网络编程,协议栈">
+<meta name="keywords" content="网络编程,eBPF,协议栈">
 <meta property="og:type" content="article">
 <meta property="og:title" content="epoll的原理和实现">
 <meta property="og:url" content="https://TitenWang.github.io/2017/10/05/implementation-of-epoll/index.html">
@@ -521,9 +521,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/eBPF/" rel="tag"># eBPF</a>
-          
             <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
+          
+            <a href="/tags/eBPF/" rel="tag"># eBPF</a>
           
             <a href="/tags/协议栈/" rel="tag"># 协议栈</a>
           
@@ -622,6 +622,10 @@
                 <div class="site-state-item site-state-categories">
                   
                     
+                      <a href="/categories/">
+                    
+                  
+                    
                     
                       
                     
@@ -631,7 +635,7 @@
                     
                     <span class="site-state-item-count">3</span>
                     <span class="site-state-item-name">分类</span>
-                  
+                  </a>
                 </div>
               
 
@@ -639,6 +643,10 @@
                 
                 
                 <div class="site-state-item site-state-tags">
+                  
+                    
+                      <a href="/tags/">
+                    
                   
                     
                     
@@ -656,7 +664,7 @@
                     
                     <span class="site-state-item-count">6</span>
                     <span class="site-state-item-name">标签</span>
-                  
+                  </a>
                 </div>
               
             </nav>
