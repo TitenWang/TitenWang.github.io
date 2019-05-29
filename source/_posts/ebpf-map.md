@@ -115,7 +115,3 @@ static const struct bpf_map_ops htab_ops = {
 };
 ```
 　　对于htab_ops中实现的部分操作，其具体实现可以参考文件kernel/bpf/hashtab.c，直接从代码里面看其实现，因为有上下文参考，所以更具有连贯性。
-
-** 本文作者： TitenWang **
-** 本文链接： https://titenwang.github.io/2017/03/26/ebpf-map/ **
-** 版权声明： 本博客所有文章除特别声明外，均采用[ CC BY-NC-ND 3.0 ](https://creativecommons.org/licenses/by-nc-nd/3.0/cn/)许可协议。**

@@ -243,6 +243,3 @@ ngx_stream_access_found(ngx_stream_session_t *s, ngx_uint_t deny)
 　　2、如果触发此次请求的客户端ip地址不在规则之内，则不对该ip地址进行访问控制判断，并返回NGX_DECLINED触发ngx_stream_init_connection()中的主流程继续往后续阶段处理。
 　　3、如果触发此次请求的客户端ip地址在规则之内，并且该规则对应的是allow指令的话，则允许该ip地址进行访问，返回NGX_OK触发主流程往后续阶段处理，如果规则对应的是deny指令的话，则不允许该规则访问，返回NGX_ABORT，触发主流程结束请求的后续处理。
 　　以上便是Nginx访问控制功能的实现机制。
-
-
-**转载请注明出处： https://TitenWang.github.io**

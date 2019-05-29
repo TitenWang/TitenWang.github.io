@@ -566,7 +566,3 @@ static int ep_send_events_proc(struct eventpoll *ep, struct list_head *head,
 　　我们知道，epoll还有另外一个重要特性就是其支持边缘触发（ET）和水平触发（LT）两种工作模式；以网络套接字为例，对于边缘触发的工作模式，当一个新的事件到来的时候，应用程序可以通过epoll_wait()系统调用获取到这个就绪事件，但是如果用户态应用程序没有一次性处理完这个事件对应的套接字缓冲区的话，那么在这个套接字没有新事件到来之前，epoll_wait()都不会在返回这个事件了；而在水平触发的工作模式下，只要某个事件对应的套接字缓冲区中还有数据没有处理完，那么在调用epoll_wait()的时候总能获取到这个就绪事件，那么在epoll中是如何实现水平触发和边缘触发这两种工作模式的呢？epoll中的实现方式十分简洁，就是在ep_send_events_proc()函数扫描rdllist链表的时候，对于每一个有就绪事件发生的epitem对象，epoll都会判断该epitem对象中存放的用户态传递进来的事件掩码是否包含了EPOLLET位，如果没有包含这个EPOLLET位，那么epoll就会将epitem对象再次加入到rdllist链表中。这样用户态应用程序再次调用epoll_wait()的时候，就又可以在rdllist链表中获取到这个epitem对象了，如果在两次调用epoll_wait()的时间内，用户态应用程序没有处理完这个事件对应的套接字缓冲区中的内容，那么后面那次调用epoll_wait()的时候，就又可以通过调用ep_item_poll()函数获取到epitem对象对应的就绪事件了，这就是水平触发工作模式的原理。
 **参考：**
 1、	[EPOLL Linux内核源代码实现原理分析](http://blog.chinaunix.net/uid-26339466-id-3292595.html)
-
-** 本文作者： TitenWang **
-** 本文链接： https://titenwang.github.io/2017/10/05/implementation-of-epoll/ **
-** 版权声明： 本博客所有文章除特别声明外，均采用[ CC BY-NC-ND 3.0 ](https://creativecommons.org/licenses/by-nc-nd/3.0/cn/)许可协议。**

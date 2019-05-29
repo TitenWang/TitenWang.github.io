@@ -288,6 +288,3 @@ ngx_stream_limit_conn_handler(ngx_stream_session_t *s)
 　　从上面的流程中，可以清楚地看到其功能逻辑：
 　　1、	如果配置文件中没有配置limit_conn_zone和limit_conn命令，则不会对客户端ip进行并发连接数的限制。这个从ngx_stream_init_connection()中可以看到。
 　　2、	遍历配置文件中配置的所有limit_conn指令的规则，对于每一条规则，如果某个客户端ip第一次和Nginx建立连接，则会从共享内存中申请内存，存放已经建立的连接数（此时为1）以及客户端地址信息；如果某个客户端ip之前已经和Nginx建立过连接，则会判断已经建立的连接数是否达到了配置的阈值，如果达到了，则返回NGX_ABORT，在主流程ngx_stream_init_connection()函数中就会断开与客户端的连接。如果没有达到配置阈值，则会递增已建立连接数，并返回NGX_DECLINED，主流程则会继续往后续阶段执行。只要有一条规则不符合条件，则会导致Nginx断开与客户端的连接。
-
-
-**转载请注明出处： https://TitenWang.github.io**

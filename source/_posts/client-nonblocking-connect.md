@@ -26,5 +26,3 @@ type: "categories"
 > 　　SOL_SOCKET to determine whether connect() completed successfully (SO_ERROR is zero)
 > 　　or unsuccessfully (SO_ERROR is　one of the usual error codes listed here, explaining 
 > 　　the reason for the failure).
-
-**转载请注明出处： https://TitenWang.github.io**

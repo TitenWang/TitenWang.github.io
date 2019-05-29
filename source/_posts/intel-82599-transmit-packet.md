@@ -233,9 +233,3 @@ static bool ixgbe_clean_tx_irq(struct ixgbe_q_vector *q_vector,
 
 **参考：**
 1、http://www.intel.com/content/www/us/en/embedded/products/networking/82599-10-gbe-controller-datasheet.html
-
-** 本文作者： TitenWang **
-** 本文链接： https://titenwang.github.io/2017/05/01/intel-82599-transmit-packet/ **
-** 版权声明： 本博客所有文章除特别声明外，均采用[ CC BY-NC-ND 3.0 ](https://creativecommons.org/licenses/by-nc-nd/3.0/cn/)许可协议。**
-
-

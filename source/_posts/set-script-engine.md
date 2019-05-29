@@ -148,5 +148,3 @@ location /image/ {
 
 **参考文章:**
 　　1、《深入理解Nginx 模块开发与架构解析》
-
-**转载请注明出处： https://TitenWang.github.io**

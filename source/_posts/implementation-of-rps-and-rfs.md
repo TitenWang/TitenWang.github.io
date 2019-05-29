@@ -426,7 +426,3 @@ done:
 **参考：**
 1、	[rps：Receive Package Steering](https://lwn.net/Articles/362339/)
 2、	[rfs：Receive Flow Steering](https://lwn.net/Articles/382428/)
-
-** 本文作者： TitenWang **
-** 本文链接： https://titenwang.github.io/2017/07/09/implementation-of-rps-and-rfs/ **
-** 版权声明： 本博客所有文章除特别声明外，均采用[ CC BY-NC-ND 3.0 ](https://creativecommons.org/licenses/by-nc-nd/3.0/cn/)许可协议。**

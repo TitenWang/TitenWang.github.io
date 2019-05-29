@@ -5,15 +5,15 @@
 # Site
 title: 我心知度
 subtitle: TitenWang's Blog
-description: The Next Maigc!!!
+description: The Next Maigc
+keywords: Magic
 author: TitenWang
-language: zh-Hans
+language: zh-CN
 timezone: Asia/Shanghai
-email: TitenWang2013@hotmail.com
 
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
-url: http://TitenWang.github.io
+url: https://TitenWang.github.io
 root: /
 permalink: :year/:month/:day/:title/
 permalink_defaults:
@@ -43,15 +43,21 @@ highlight:
   line_number: true
   auto_detect: true
   tab_replace:
-
+  
+# Home page setting
+# path: Root path for your blogs index page. (default = '')
+# per_page: Posts displayed per page. (0 = disable pagination)
+# order_by: Posts order. (Order by date descending by default)
+index_generator:
+  path: ''
+  per_page: 10
+  order_by: -date
+  
 # Category & Tag
 default_category: uncategorized
 category_map:
 tag_map:
 
-archives: 1
-category: 1
-tag: 1
 # Date / Time format
 ## Hexo uses Moment.js to parse and display date
 ## You can customize the date format as defined in
@@ -69,14 +75,15 @@ pagination_dir: page
 ## Themes: https://hexo.io/themes/
 theme: next
 
-#local search
 search:
   path: search.xml
-  filed: post
+  field: post
+  format: html
+  limit: 10000
 
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git
-  repository: https://github.com/TitenWang/TitenWang.github.io
+  repo: git@github.com:TitenWang/TitenWang.github.io.git
   branch: master

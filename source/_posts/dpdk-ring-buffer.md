@@ -143,7 +143,3 @@ struct rte_tailq_elem {
 
 **参考文章:**
 　　1、http://dpdk.org/doc/guides/prog_guide/
-
-** 本文作者： TitenWang **
-** 本文链接： https://titenwang.github.io/2016/11/20/dpdk-ring-buffer/ **
-** 版权声明： 本博客所有文章除特别声明外，均采用[ CC BY-NC-ND 3.0 ](https://creativecommons.org/licenses/by-nc-nd/3.0/cn/)许可协议。**

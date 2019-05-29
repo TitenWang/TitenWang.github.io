@@ -1,5 +1,6 @@
 ﻿---
 title: 异步文件I/O
+date: 2016-09-03 15:45:01
 tags:
   - Nginx
 categories: Nginx
@@ -310,5 +311,3 @@ ngx_file_aio_event_handler(ngx_event_t *ev)
 
 **参考文章:**
 　　1、《深入理解Nginx 模块开发与架构解析》
-
-**转载请注明出处： https://TitenWang.github.io**

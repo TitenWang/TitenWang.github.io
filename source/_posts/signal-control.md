@@ -144,5 +144,3 @@ ngx_os_signal_process(ngx_cycle_t *cycle, char *name, ngx_pid_t pid)
 
 **参考文章:**
 　　1、《深入理解Nginx 模块开发与架构解析》
-
-**转载请注明出处： https://TitenWang.github.io**
