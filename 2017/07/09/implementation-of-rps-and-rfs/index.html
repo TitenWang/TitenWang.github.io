@@ -97,7 +97,7 @@
 
 
   <meta name="description" content="rps的全称是Receive Package Steering，rfs的全称是Receive Flow Steering，rps和rfs是google的工程师提供的两个补丁，用以在软件层面实现报文在多个cpu之间的负载均衡以及提高报文处理的缓存命中率。rps和rfs出现的原因主要有以下两个：　　1、    对于多队列网卡，网卡硬件接收队列与cpu核数在数量上不匹配导致报文在cpu之间分配不均。">
-<meta name="keywords" content="网络编程,eBPF,协议栈">
+<meta name="keywords" content="eBPF,网络编程,协议栈">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Linux中rps&#x2F;rfs的原理及实现">
 <meta property="og:url" content="https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/index.html">
@@ -538,9 +538,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
-          
             <a href="/tags/eBPF/" rel="tag"># eBPF</a>
+          
+            <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
           
             <a href="/tags/协议栈/" rel="tag"># 协议栈</a>
           
@@ -648,10 +648,6 @@
                 <div class="site-state-item site-state-categories">
                   
                     
-                      <a href="/categories/">
-                    
-                  
-                    
                     
                       
                     
@@ -661,7 +657,7 @@
                     
                     <span class="site-state-item-count">3</span>
                     <span class="site-state-item-name">分类</span>
-                  </a>
+                  
                 </div>
               
 
@@ -669,10 +665,6 @@
                 
                 
                 <div class="site-state-item site-state-tags">
-                  
-                    
-                      <a href="/tags/">
-                    
                   
                     
                     
@@ -690,7 +682,7 @@
                     
                     <span class="site-state-item-count">6</span>
                     <span class="site-state-item-name">标签</span>
-                  </a>
+                  
                 </div>
               
             </nav>
