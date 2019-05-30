@@ -101,23 +101,23 @@
 
 
   <meta name="description" content="本篇文档主要描述了网络数据包在二层的接收流程，主要包括以下三个部分：　　1）、82599网卡和数据包接收相关的内容；　　2）、ixgbe网卡驱动数据包接收相关的配置；　　3）、ixgbe网卡驱动napi接口的处理。">
-<meta name="keywords" content="网络编程,eBPF,网卡驱动">
+<meta name="keywords" content="eBPF,网络编程,网卡驱动">
 <meta property="og:type" content="article">
 <meta property="og:title" content="基于82599网卡的二层网络数据包接收">
-<meta property="og:url" content="https://TitenWang.github.io/2017/04/16/intel-82599-receive-packet/index.html">
+<meta property="og:url" content="https://tqr.ink/2017/04/16/intel-82599-receive-packet/index.html">
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="本篇文档主要描述了网络数据包在二层的接收流程，主要包括以下三个部分：　　1）、82599网卡和数据包接收相关的内容；　　2）、ixgbe网卡驱动数据包接收相关的配置；　　3）、ixgbe网卡驱动napi接口的处理。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/传统描述符格式.png">
-<meta property="og:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/高级描述符格式-读格式.png">
-<meta property="og:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/高级描述符格式-回写格式.png">
-<meta property="og:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/报文接收描述符环形队列结构.png">
-<meta property="og:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/NAPI调度流程.png">
+<meta property="og:image" content="https://tqr.ink/2017/04/16/intel-82599-receive-packet/传统描述符格式.png">
+<meta property="og:image" content="https://tqr.ink/2017/04/16/intel-82599-receive-packet/高级描述符格式-读格式.png">
+<meta property="og:image" content="https://tqr.ink/2017/04/16/intel-82599-receive-packet/高级描述符格式-回写格式.png">
+<meta property="og:image" content="https://tqr.ink/2017/04/16/intel-82599-receive-packet/报文接收描述符环形队列结构.png">
+<meta property="og:image" content="https://tqr.ink/2017/04/16/intel-82599-receive-packet/NAPI调度流程.png">
 <meta property="og:updated_time" content="2019-05-29T09:35:18.683Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="基于82599网卡的二层网络数据包接收">
 <meta name="twitter:description" content="本篇文档主要描述了网络数据包在二层的接收流程，主要包括以下三个部分：　　1）、82599网卡和数据包接收相关的内容；　　2）、ixgbe网卡驱动数据包接收相关的配置；　　3）、ixgbe网卡驱动napi接口的处理。">
-<meta name="twitter:image" content="https://titenwang.github.io/2017/04/16/intel-82599-receive-packet/传统描述符格式.png">
+<meta name="twitter:image" content="https://tqr.ink/2017/04/16/intel-82599-receive-packet/传统描述符格式.png">
 
 
 
@@ -125,7 +125,7 @@
 
   
   
-  <link rel="canonical" href="https://TitenWang.github.io/2017/04/16/intel-82599-receive-packet/">
+  <link rel="canonical" href="https://tqr.ink/2017/04/16/intel-82599-receive-packet/">
 
 
 
@@ -384,7 +384,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://TitenWang.github.io/2017/04/16/intel-82599-receive-packet/">
+    <link itemprop="mainEntityOfPage" href="https://tqr.ink/2017/04/16/intel-82599-receive-packet/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="TitenWang">
@@ -612,7 +612,7 @@
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
     
-    <a href="https://TitenWang.github.io/2017/04/16/intel-82599-receive-packet/" title="基于82599网卡的二层网络数据包接收">https://TitenWang.github.io/2017/04/16/intel-82599-receive-packet/</a>
+    <a href="https://tqr.ink/2017/04/16/intel-82599-receive-packet/" title="基于82599网卡的二层网络数据包接收">https://tqr.ink/2017/04/16/intel-82599-receive-packet/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
@@ -625,9 +625,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
-          
             <a href="/tags/eBPF/" rel="tag"># eBPF</a>
+          
+            <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
           
             <a href="/tags/网卡驱动/" rel="tag"># 网卡驱动</a>
           
