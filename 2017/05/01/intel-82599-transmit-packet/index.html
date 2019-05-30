@@ -101,23 +101,23 @@
 
 
   <meta name="description" content="这篇文档主要介绍了网络数据包在二层的发送流程。网络数据包在二层的发送主要包括了网络设备层和驱动层两个部分，所以下面将会从这两个方面讲述报文在二层的发送流程。">
-<meta name="keywords" content="eBPF,网络编程,网卡驱动">
+<meta name="keywords" content="网络编程,eBPF,网卡驱动">
 <meta property="og:type" content="article">
 <meta property="og:title" content="基于82599网卡的二层网络数据包发送">
-<meta property="og:url" content="https://tqr.ink/2017/05/01/intel-82599-transmit-packet/index.html">
+<meta property="og:url" content="https://TitenWang.github.io/2017/05/01/intel-82599-transmit-packet/index.html">
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="这篇文档主要介绍了网络数据包在二层的发送流程。网络数据包在二层的发送主要包括了网络设备层和驱动层两个部分，所以下面将会从这两个方面讲述报文在二层的发送流程。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https://tqr.ink/2017/05/01/intel-82599-transmit-packet/网络设备层报文发送流程图.png">
-<meta property="og:image" content="https://tqr.ink/2017/05/01/intel-82599-transmit-packet/高级格式报文发送描述符-读格式.png">
-<meta property="og:image" content="https://tqr.ink/2017/05/01/intel-82599-transmit-packet/高级格式报文发送描述符-回写格式.png">
-<meta property="og:image" content="https://tqr.ink/2017/05/01/intel-82599-transmit-packet/报文发送描述符环形队列结构.png">
-<meta property="og:image" content="https://tqr.ink/2017/05/01/intel-82599-transmit-packet/数据分段与报文发送描述符对应关系.png">
+<meta property="og:image" content="https://titenwang.github.io/2017/05/01/intel-82599-transmit-packet/网络设备层报文发送流程图.png">
+<meta property="og:image" content="https://titenwang.github.io/2017/05/01/intel-82599-transmit-packet/高级格式报文发送描述符-读格式.png">
+<meta property="og:image" content="https://titenwang.github.io/2017/05/01/intel-82599-transmit-packet/高级格式报文发送描述符-回写格式.png">
+<meta property="og:image" content="https://titenwang.github.io/2017/05/01/intel-82599-transmit-packet/报文发送描述符环形队列结构.png">
+<meta property="og:image" content="https://titenwang.github.io/2017/05/01/intel-82599-transmit-packet/数据分段与报文发送描述符对应关系.png">
 <meta property="og:updated_time" content="2019-05-29T09:35:36.837Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="基于82599网卡的二层网络数据包发送">
 <meta name="twitter:description" content="这篇文档主要介绍了网络数据包在二层的发送流程。网络数据包在二层的发送主要包括了网络设备层和驱动层两个部分，所以下面将会从这两个方面讲述报文在二层的发送流程。">
-<meta name="twitter:image" content="https://tqr.ink/2017/05/01/intel-82599-transmit-packet/网络设备层报文发送流程图.png">
+<meta name="twitter:image" content="https://titenwang.github.io/2017/05/01/intel-82599-transmit-packet/网络设备层报文发送流程图.png">
 
 
 
@@ -125,7 +125,7 @@
 
   
   
-  <link rel="canonical" href="https://tqr.ink/2017/05/01/intel-82599-transmit-packet/">
+  <link rel="canonical" href="https://TitenWang.github.io/2017/05/01/intel-82599-transmit-packet/">
 
 
 
@@ -384,7 +384,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://tqr.ink/2017/05/01/intel-82599-transmit-packet/">
+    <link itemprop="mainEntityOfPage" href="https://TitenWang.github.io/2017/05/01/intel-82599-transmit-packet/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="TitenWang">
@@ -583,7 +583,7 @@
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
     
-    <a href="https://tqr.ink/2017/05/01/intel-82599-transmit-packet/" title="基于82599网卡的二层网络数据包发送">https://tqr.ink/2017/05/01/intel-82599-transmit-packet/</a>
+    <a href="https://TitenWang.github.io/2017/05/01/intel-82599-transmit-packet/" title="基于82599网卡的二层网络数据包发送">https://TitenWang.github.io/2017/05/01/intel-82599-transmit-packet/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
@@ -596,9 +596,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/eBPF/" rel="tag"># eBPF</a>
-          
             <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
+          
+            <a href="/tags/eBPF/" rel="tag"># eBPF</a>
           
             <a href="/tags/网卡驱动/" rel="tag"># 网卡驱动</a>
           

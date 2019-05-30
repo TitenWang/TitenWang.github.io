@@ -101,19 +101,19 @@
 
 
   <meta name="description" content="epoll是Linux内核为处理大批量文件描述符而设计的IO多路复用机制，它能显著提高程序在存在大量并发连接而只有少部分活跃连接情况下的系统CPU利用率。epoll之所以可以做到如此高的效率是因为它在获取就绪事件的时候，并不会遍历所有被监听的文件描述符集，而只会遍历那些被设备IO事件异步唤醒而加入就绪链表的文件描述符集。">
-<meta name="keywords" content="eBPF,网络编程,协议栈">
+<meta name="keywords" content="网络编程,eBPF,协议栈">
 <meta property="og:type" content="article">
 <meta property="og:title" content="epoll的原理和实现">
-<meta property="og:url" content="https://tqr.ink/2017/10/05/implementation-of-epoll/index.html">
+<meta property="og:url" content="https://TitenWang.github.io/2017/10/05/implementation-of-epoll/index.html">
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="epoll是Linux内核为处理大批量文件描述符而设计的IO多路复用机制，它能显著提高程序在存在大量并发连接而只有少部分活跃连接情况下的系统CPU利用率。epoll之所以可以做到如此高的效率是因为它在获取就绪事件的时候，并不会遍历所有被监听的文件描述符集，而只会遍历那些被设备IO事件异步唤醒而加入就绪链表的文件描述符集。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https://tqr.ink/2017/10/05/implementation-of-epoll/epoll核心数据结构关系.png">
+<meta property="og:image" content="https://titenwang.github.io/2017/10/05/implementation-of-epoll/epoll核心数据结构关系.png">
 <meta property="og:updated_time" content="2019-05-29T09:34:55.462Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="epoll的原理和实现">
 <meta name="twitter:description" content="epoll是Linux内核为处理大批量文件描述符而设计的IO多路复用机制，它能显著提高程序在存在大量并发连接而只有少部分活跃连接情况下的系统CPU利用率。epoll之所以可以做到如此高的效率是因为它在获取就绪事件的时候，并不会遍历所有被监听的文件描述符集，而只会遍历那些被设备IO事件异步唤醒而加入就绪链表的文件描述符集。">
-<meta name="twitter:image" content="https://tqr.ink/2017/10/05/implementation-of-epoll/epoll核心数据结构关系.png">
+<meta name="twitter:image" content="https://titenwang.github.io/2017/10/05/implementation-of-epoll/epoll核心数据结构关系.png">
 
 
 
@@ -121,7 +121,7 @@
 
   
   
-  <link rel="canonical" href="https://tqr.ink/2017/10/05/implementation-of-epoll/">
+  <link rel="canonical" href="https://TitenWang.github.io/2017/10/05/implementation-of-epoll/">
 
 
 
@@ -380,7 +380,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://tqr.ink/2017/10/05/implementation-of-epoll/">
+    <link itemprop="mainEntityOfPage" href="https://TitenWang.github.io/2017/10/05/implementation-of-epoll/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="TitenWang">
@@ -577,7 +577,7 @@
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
     
-    <a href="https://tqr.ink/2017/10/05/implementation-of-epoll/" title="epoll的原理和实现">https://tqr.ink/2017/10/05/implementation-of-epoll/</a>
+    <a href="https://TitenWang.github.io/2017/10/05/implementation-of-epoll/" title="epoll的原理和实现">https://TitenWang.github.io/2017/10/05/implementation-of-epoll/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
@@ -590,9 +590,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/eBPF/" rel="tag"># eBPF</a>
-          
             <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
+          
+            <a href="/tags/eBPF/" rel="tag"># eBPF</a>
           
             <a href="/tags/协议栈/" rel="tag"># 协议栈</a>
           
