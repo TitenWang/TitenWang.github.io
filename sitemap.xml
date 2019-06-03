@@ -2,6 +2,13 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   
   <url>
+    <loc>https://TitenWang.github.io/2019/06/03/value-and-its-type-in-lua/</loc>
+    
+    <lastmod>2019-06-03T06:52:08.071Z</lastmod>
+    
+  </url>
+  
+  <url>
     <loc>https://TitenWang.github.io/about/index.html</loc>
     
     <lastmod>2019-05-29T12:43:19.201Z</lastmod>

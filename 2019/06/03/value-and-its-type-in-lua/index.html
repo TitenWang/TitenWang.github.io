@@ -100,26 +100,20 @@
 
 
 
-  <meta name="description" content="DPDK中实现了无锁环形缓冲区，支持单生产者或者多生产者入队列，单消费者或多消费者出队列。">
-<meta name="keywords" content="网络编程,DPDK">
+  <meta name="description" content="基本数据类型及其子类型　　Lua是一门动态类型的语言，这意味着Lua中的变量没有类型，而值才有类型。一个变量可以在不同时刻指向不同类型的值。">
+<meta name="keywords" content="Lua,编程语言">
 <meta property="og:type" content="article">
-<meta property="og:title" content="DPDK中的无锁环形缓冲区">
-<meta property="og:url" content="https://TitenWang.github.io/2016/11/20/dpdk-ring-buffer/index.html">
+<meta property="og:title" content="Lua中的值及其类型">
+<meta property="og:url" content="https://TitenWang.github.io/2019/06/03/value-and-its-type-in-lua/index.html">
 <meta property="og:site_name" content="我心知度">
-<meta property="og:description" content="DPDK中实现了无锁环形缓冲区，支持单生产者或者多生产者入队列，单消费者或多消费者出队列。">
+<meta property="og:description" content="基本数据类型及其子类型　　Lua是一门动态类型的语言，这意味着Lua中的变量没有类型，而值才有类型。一个变量可以在不同时刻指向不同类型的值。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https://titenwang.github.io/2016/11/20/dpdk-ring-buffer/无锁环形缓冲区内存布局.png">
-<meta property="og:image" content="https://titenwang.github.io/2016/11/20/dpdk-ring-buffer/多生产者入队列初始状态.png">
-<meta property="og:image" content="https://titenwang.github.io/2016/11/20/dpdk-ring-buffer/多生产者入队列第一步.png">
-<meta property="og:image" content="https://titenwang.github.io/2016/11/20/dpdk-ring-buffer/多生产者入队列第二步.png">
-<meta property="og:image" content="https://titenwang.github.io/2016/11/20/dpdk-ring-buffer/多生产者入队列第三步.png">
-<meta property="og:image" content="https://titenwang.github.io/2016/11/20/dpdk-ring-buffer/多生产者入队列第四步.png">
-<meta property="og:image" content="https://titenwang.github.io/2016/11/20/dpdk-ring-buffer/多生产者入队列第五步.png">
-<meta property="og:updated_time" content="2019-05-29T09:34:30.715Z">
+<meta property="og:image" content="https://titenwang.github.io/2019/06/03/value-and-its-type-in-lua/GCObject和TString的内存布局.png">
+<meta property="og:updated_time" content="2019-06-03T06:52:08.071Z">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="DPDK中的无锁环形缓冲区">
-<meta name="twitter:description" content="DPDK中实现了无锁环形缓冲区，支持单生产者或者多生产者入队列，单消费者或多消费者出队列。">
-<meta name="twitter:image" content="https://titenwang.github.io/2016/11/20/dpdk-ring-buffer/无锁环形缓冲区内存布局.png">
+<meta name="twitter:title" content="Lua中的值及其类型">
+<meta name="twitter:description" content="基本数据类型及其子类型　　Lua是一门动态类型的语言，这意味着Lua中的变量没有类型，而值才有类型。一个变量可以在不同时刻指向不同类型的值。">
+<meta name="twitter:image" content="https://titenwang.github.io/2019/06/03/value-and-its-type-in-lua/GCObject和TString的内存布局.png">
 
 
 
@@ -127,7 +121,7 @@
 
   
   
-  <link rel="canonical" href="https://TitenWang.github.io/2016/11/20/dpdk-ring-buffer/">
+  <link rel="canonical" href="https://TitenWang.github.io/2019/06/03/value-and-its-type-in-lua/">
 
 
 
@@ -137,7 +131,7 @@
   };
 </script>
 
-  <title>DPDK中的无锁环形缓冲区 | 我心知度</title>
+  <title>Lua中的值及其类型 | 我心知度</title>
   
 
 
@@ -386,7 +380,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://TitenWang.github.io/2016/11/20/dpdk-ring-buffer/">
+    <link itemprop="mainEntityOfPage" href="https://TitenWang.github.io/2019/06/03/value-and-its-type-in-lua/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="TitenWang">
@@ -403,7 +397,7 @@
 
         
         
-          <h1 class="post-title" itemprop="name headline">DPDK中的无锁环形缓冲区
+          <h1 class="post-title" itemprop="name headline">Lua中的值及其类型
 
               
             
@@ -429,24 +423,12 @@
                 
               
 
-              <time title="创建时间：2016-11-20 15:55:12" itemprop="dateCreated datePublished" datetime="2016-11-20T15:55:12+08:00">2016-11-20</time>
+              <time title="创建时间：2019-06-03 09:34:44 / 修改时间：14:52:08" itemprop="dateCreated datePublished" datetime="2019-06-03T09:34:44+08:00">2019-06-03</time>
             
 
             
               
 
-              
-                
-                <span class="post-meta-divider">|</span>
-                
-
-                <span class="post-meta-item-icon">
-                  <i class="fa fa-calendar-check-o"></i>
-                </span>
-                
-                  <span class="post-meta-item-text">更新于</span>
-                
-                <time title="修改时间：2019-05-29 17:34:30" itemprop="dateModified" datetime="2019-05-29T17:34:30+08:00">2019-05-29</time>
               
             
           </span>
@@ -463,7 +445,7 @@
                 <span class="post-meta-item-text">分类于</span>
               
               
-                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/DPDK/" itemprop="url" rel="index"><span itemprop="name">DPDK</span></a></span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing"><a href="/categories/Lua/" itemprop="url" rel="index"><span itemprop="name">Lua</span></a></span>
 
                 
                 
@@ -505,36 +487,37 @@
       
 
       
-        <p>　　DPDK中实现了无锁环形缓冲区，支持单生产者或者多生产者入队列，单消费者或多消费者出队列。<a id="more"></a>下面会记录dpdk中是如何管理所有使用的无锁环形缓冲区以及无锁环形缓冲区中支持的一些操作。</p>
-<h2 id="无锁环形缓冲区的组织"><a href="#无锁环形缓冲区的组织" class="headerlink" title="无锁环形缓冲区的组织"></a>无锁环形缓冲区的组织</h2><p>　　DPDK中定义的无锁环形缓冲区对象如下：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rte_ring</span> &#123;</span></span><br><span class="line">	<span class="keyword">char</span> name[RTE_MEMZONE_NAMESIZE];    <span class="comment">/**&lt; Name of the ring. */</span></span><br><span class="line">	<span class="keyword">int</span> flags;                 <span class="comment">/**&lt; Flags supplied at creation. */</span></span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">rte_memzone</span> *<span class="title">memzone</span>;</span></span><br><span class="line">			<span class="comment">/**&lt; Memzone, if any, containing the rte_ring */</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">/** Ring producer status. */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">prod</span> &#123;</span></span><br><span class="line">		<span class="keyword">uint32_t</span> watermark;      <span class="comment">/**&lt; Maximum items before EDQUOT. */</span></span><br><span class="line">		<span class="keyword">uint32_t</span> sp_enqueue;     <span class="comment">/**&lt; True, if single producer. */</span></span><br><span class="line">		<span class="keyword">uint32_t</span> size;           <span class="comment">/**&lt; Size of ring. */</span></span><br><span class="line">		<span class="keyword">uint32_t</span> mask;           <span class="comment">/**&lt; Mask (size-1) of ring. */</span></span><br><span class="line">		<span class="keyword">volatile</span> <span class="keyword">uint32_t</span> head;  <span class="comment">/**&lt; Producer head. */</span></span><br><span class="line">		<span class="keyword">volatile</span> <span class="keyword">uint32_t</span> tail;  <span class="comment">/**&lt; Producer tail. */</span></span><br><span class="line">	&#125; prod __rte_cache_aligned;</span><br><span class="line"></span><br><span class="line">	<span class="comment">/** Ring consumer status. */</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">cons</span> &#123;</span></span><br><span class="line">		<span class="keyword">uint32_t</span> sc_dequeue;     <span class="comment">/**&lt; True, if single consumer. */</span></span><br><span class="line">		<span class="keyword">uint32_t</span> size;           <span class="comment">/**&lt; Size of the ring. */</span></span><br><span class="line">		<span class="keyword">uint32_t</span> mask;           <span class="comment">/**&lt; Mask (size-1) of ring. */</span></span><br><span class="line">		<span class="keyword">volatile</span> <span class="keyword">uint32_t</span> head;  <span class="comment">/**&lt; Consumer head. */</span></span><br><span class="line">		<span class="keyword">volatile</span> <span class="keyword">uint32_t</span> tail;  <span class="comment">/**&lt; Consumer tail. */</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> RTE_RING_SPLIT_PROD_CONS</span></span><br><span class="line">	&#125; cons __rte_cache_aligned;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">else</span></span></span><br><span class="line">	&#125; cons;</span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="meta-keyword">ifdef</span> RTE_LIBRTE_RING_DEBUG</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rte_ring_debug_stats</span> <span class="title">stats</span>[<span class="title">RTE_MAX_LCORE</span>];</span></span><br><span class="line"><span class="meta">#<span class="meta-keyword">endif</span></span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">void</span> * ring[<span class="number">0</span>] __rte_cache_aligned; </span><br><span class="line">	                        <span class="comment">/**&lt; Memory space of ring starts here.</span></span><br><span class="line"><span class="comment">	                         * not volatile so need to be careful</span></span><br><span class="line"><span class="comment">	                         * about compiler re-ordering */</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+        <h2 id="基本数据类型及其子类型"><a href="#基本数据类型及其子类型" class="headerlink" title="基本数据类型及其子类型"></a>基本数据类型及其子类型</h2><p>　　Lua是一门动态类型的语言，这意味着Lua中的变量没有类型，而值才有类型。一个变量可以在不同时刻指向不同类型的值。<a id="more"></a><br>　　在lua-5.3.5版本中，有9中基本的数据类型，其定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">#define LUA_TNIL		0		// 空类型</span><br><span class="line">#define LUA_TBOOLEAN		1		// 布尔类型</span><br><span class="line">#define LUA_TLIGHTUSERDATA	2		// 指针类型(void *)</span><br><span class="line">#define LUA_TNUMBER		3		// 数字类型</span><br><span class="line">#define LUA_TSTRING		4		// 字符串类型</span><br><span class="line">#define LUA_TTABLE		5		// 表类型</span><br><span class="line">#define LUA_TFUNCTION		6		// 函数类型</span><br><span class="line">#define LUA_TUSERDATA		7		// 指针类型(void *)</span><br><span class="line">#define LUA_TTHREAD		8		// Lua虚拟机、协程</span><br><span class="line"></span><br><span class="line">#define LUA_NUMTAGS		9</span><br></pre></td></tr></table></figure>
 
-<p>　　从上面的定义可以看出，无锁环形缓冲区对象中定义了一个生产者对象和一个消费者对象，对应的也就是缓冲区的写对象和读对象。另外，也可以看出无锁环形缓冲区在内存中的组织形式是前面是无锁环形缓冲区对象本身，然后紧接着就是实际用于存储内容的环形队列，在某一时刻其内存布局如下图所示：<br> <div align="center"> <img src="/2016/11/20/dpdk-ring-buffer/无锁环形缓冲区内存布局.png" title="图1 无锁环形缓冲区内存布局"> </div><br>　　无锁环形缓冲区是一种通用的数据结构，所以可能会在多个地方使用，在dpdk中就会有多种情况会使用，比如内存池。所以随之而来的一个疑问就是dpdk是如何管理其所使用的所有的无锁环形缓冲区的呢？从它的源码实现(rte_ring.c/rte_ring.h)中我们可以找到答案，与此相关的部分源码如下：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br></pre></td><td class="code"><pre><span class="line">TAILQ_HEAD(rte_ring_list, rte_tailq_entry);</span><br><span class="line"></span><br><span class="line"><span class="keyword">static</span> <span class="class"><span class="keyword">struct</span> <span class="title">rte_tailq_elem</span> <span class="title">rte_ring_tailq</span> = &#123;</span></span><br><span class="line">	.name = RTE_TAILQ_RING_NAME,</span><br><span class="line">&#125;;</span><br><span class="line">EAL_REGISTER_TAILQ(rte_ring_tailq)</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rte_ring</span> *</span></span><br><span class="line"><span class="class"><span class="title">rte_ring_create</span>(<span class="title">const</span> <span class="title">char</span> *<span class="title">name</span>, <span class="title">unsigned</span> <span class="title">count</span>, <span class="title">int</span> <span class="title">socket_id</span>,</span></span><br><span class="line"><span class="class">		<span class="title">unsigned</span> <span class="title">flags</span>)</span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">	<span class="keyword">char</span> mz_name[RTE_MEMZONE_NAMESIZE];</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rte_ring</span> *<span class="title">r</span>;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rte_tailq_entry</span> *<span class="title">te</span>;</span></span><br><span class="line">	<span class="keyword">const</span> <span class="class"><span class="keyword">struct</span> <span class="title">rte_memzone</span> *<span class="title">mz</span>;</span></span><br><span class="line">	<span class="keyword">ssize_t</span> ring_size;</span><br><span class="line">	<span class="keyword">int</span> mz_flags = <span class="number">0</span>;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rte_ring_list</span>* <span class="title">ring_list</span> = <span class="title">NULL</span>;</span></span><br><span class="line">	<span class="keyword">int</span> ret;</span><br><span class="line"></span><br><span class="line">	ring_list = RTE_TAILQ_CAST(rte_ring_tailq.head, rte_ring_list);</span><br><span class="line"></span><br><span class="line">	<span class="comment">/* get the size of memory occupied by ring */</span></span><br><span class="line">	ring_size = rte_ring_get_memsize(count);</span><br><span class="line">	……</span><br><span class="line">	te = rte_zmalloc(<span class="string">"RING_TAILQ_ENTRY"</span>, <span class="keyword">sizeof</span>(*te), <span class="number">0</span>);</span><br><span class="line">	<span class="keyword">if</span> (te == <span class="literal">NULL</span>) &#123;</span><br><span class="line">		RTE_LOG(ERR, RING, <span class="string">"Cannot reserve memory for tailq\n"</span>);</span><br><span class="line">		rte_errno = ENOMEM;</span><br><span class="line">		<span class="keyword">return</span> <span class="literal">NULL</span>;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	rte_rwlock_write_lock(RTE_EAL_TAILQ_RWLOCK);</span><br><span class="line">	mz = rte_memzone_reserve(mz_name, ring_size, socket_id, mz_flags);</span><br><span class="line">	<span class="keyword">if</span> (mz != <span class="literal">NULL</span>) &#123;</span><br><span class="line">		r = mz-&gt;addr;</span><br><span class="line">		<span class="comment">/* no need to check return value here, we already checked </span></span><br><span class="line"><span class="comment">		 * the arguments above */</span></span><br><span class="line">		rte_ring_init(r, name, count, flags);</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* 低维尾队列的entry存放着rte_ring的管理对象地址 */</span></span><br><span class="line">		te-&gt;data = (<span class="keyword">void</span> *) r;</span><br><span class="line">		r-&gt;memzone = mz;</span><br><span class="line"></span><br><span class="line">		<span class="comment">/* 将存放着环形缓冲区对象的尾队列entry插入到低维尾队列的末端 */</span></span><br><span class="line">		TAILQ_INSERT_TAIL(ring_list, te, next);</span><br><span class="line">	&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">		r = <span class="literal">NULL</span>;</span><br><span class="line">		RTE_LOG(ERR, RING, <span class="string">"Cannot reserve memory\n"</span>);</span><br><span class="line">		rte_free(te);</span><br><span class="line">	&#125;</span><br><span class="line">	rte_rwlock_write_unlock(RTE_EAL_TAILQ_RWLOCK);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">return</span> r;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>　　其中需要说明的是LUA_TLIGHTUSERDATA和LUA_TUSERDATA的区别是：前者的所有对象共享一个元表，且其内部所指向的内存的申请及释放不需要由Lua来完成；后者的每个对象都有自己的元表，需要进行垃圾回收，并且其内部所指向的内存的申请和释放需要由Lua来完成。除此之外，上述的一些基本类型有子类型（变种类型），一些基本类型需要GC，例如LUA_TNUMBER类型可以进一步分为整数类型和实数类型，现将这些子类型及GC标记的定义一并罗列如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">#define LUA_TLCL	(LUA_TFUNCTION | (0 &lt;&lt; 4))  /* Lua closure */</span><br><span class="line">#define LUA_TLCF	(LUA_TFUNCTION | (1 &lt;&lt; 4))  /* light C function */</span><br><span class="line">#define LUA_TCCL	(LUA_TFUNCTION | (2 &lt;&lt; 4))  /* C closure */</span><br><span class="line"></span><br><span class="line">#define LUA_TSHRSTR	(LUA_TSTRING | (0 &lt;&lt; 4))  /* short strings */</span><br><span class="line">#define LUA_TLNGSTR	(LUA_TSTRING | (1 &lt;&lt; 4))  /* long strings */</span><br><span class="line"></span><br><span class="line">#define LUA_TNUMFLT	(LUA_TNUMBER | (0 &lt;&lt; 4))  /* float numbers */</span><br><span class="line">#define LUA_TNUMINT	(LUA_TNUMBER | (1 &lt;&lt; 4))  /* integer numbers *</span><br><span class="line"></span><br><span class="line">/* Bit mark for collectable types */</span><br><span class="line">#define BIT_ISCOLLECTABLE	(1 &lt;&lt; 6)</span><br><span class="line"></span><br><span class="line">/* mark a tag as collectable */</span><br><span class="line">#define ctb(t)			((t) | BIT_ISCOLLECTABLE)</span><br></pre></td></tr></table></figure>
 
-<p>　　从上面的源码我们可以知道，dpdk是用尾队列来管理其所使用的所有无锁环形缓冲区的，也就是说一个尾队列中的元素就是一个无锁环形缓冲区对象。那用来管理所有无锁环形缓冲区的尾队列，dpdk又是如何管理的呢？在函数rte_ring_create()中可以看到管理着无锁环形缓冲区的尾队列头部是存放在一个类型为struct rte_tailq_elem的全局变量rte_ring_tailq的head成员中，其中struct rte_tailq_elem定义如下：</p>
-<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">rte_tailq_elem</span> &#123;</span></span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">rte_tailq_head</span> *<span class="title">head</span>;</span></span><br><span class="line">	TAILQ_ENTRY(rte_tailq_elem) next;</span><br><span class="line">	<span class="keyword">const</span> <span class="keyword">char</span> name[RTE_TAILQ_NAMESIZE];</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>　　Lua中是如何实现对基本类型、子类型、是否需要GC等的表示的呢？其实从子类型的定义我们也可以大概了解到，具体如下：</p>
+<ul>
+<li>基本类型有9种，因此可以用低四位，即bits 0-3来表示；</li>
+<li>每种基本类型的子类型不超过4种，因此可以用中间两位，即bits 4-5来表示；</li>
+<li>用于标记某种类型是否需要进行GC，只需要一个位，因此可以用bit 6来表示；</li>
+</ul>
+<h2 id="值表示的统一数据结构"><a href="#值表示的统一数据结构" class="headerlink" title="值表示的统一数据结构"></a>值表示的统一数据结构</h2><p>　　Lua中所有的值都是第一类值，即所有的值都可以存储在变量中，也可以作为参数传递给函数，也可以作为函数的返回值。为了更好地管理Lua中的值，Lua使用了一个通用的数据结构TValue来存储Lua中可能出现的任何值及其类型，其定义如下：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line">typedef union Value &#123;</span><br><span class="line">  GCObject *gc;    /* collectable objects */</span><br><span class="line">  void *p;         /* light userdata */</span><br><span class="line">  int b;           /* booleans */</span><br><span class="line">  lua_CFunction f; /* light C functions */</span><br><span class="line">  lua_Integer i;   /* integer numbers */</span><br><span class="line">  lua_Number n;    /* float numbers */</span><br><span class="line">&#125; Value;</span><br><span class="line"></span><br><span class="line">#define TValuefields	Value value_; int tt_</span><br><span class="line"></span><br><span class="line">typedef struct lua_TValue &#123;</span><br><span class="line">  TValuefields;</span><br><span class="line">&#125; TValue;</span><br></pre></td></tr></table></figure>
 
-<p>　　从struct rte_tailq_elem的定义可以看到，管理着无锁环形缓冲区尾队列的头部是另外一个尾队列的一个元素，类似的管理方式还用在了dpdk的内存池等数据结构中，所以在dpdk中采用了两级尾队列来管理所使用的数据结构。其实这样说也不完整，因为除了用二级尾队列来管理所使用的数据结构之外，dpdk还用了一个全局共享内存中的列表数组rte_config.mem_config-&gt;tailq_head[RTE_MAX_TAILQ]来分别存储这个二级尾队列中低维尾队列存放的元素，即管理某一种特定数据结构的尾队列头部。</p>
-<h2 id="无锁环形缓冲区的操作"><a href="#无锁环形缓冲区的操作" class="headerlink" title="无锁环形缓冲区的操作"></a>无锁环形缓冲区的操作</h2><p>　　记录完了dpdk中对无锁环形缓冲区的管理方式，接下来对dpdk中实现的无锁环形缓冲区所支持的操作做一个记录。从一开始说过无锁环形缓冲区支持单生产者或者多生产者入队列，单消费者或多消费者出队列等操作。其实从另外一个角度还可以说dpdk中的无锁环形缓冲区中支持两种出入队列的模式，即出入队列元素数目固定模式和尽力而为模式，出入队列元素数目固定模式就是说只有进入队列的元素数目达到指定数目才算操着成功，否则失败；而出入队列元素数目尽力而为模式就是说对于指定的数目，如果当时队列状态并不能满足，则以当时队列状态为准，尽可能满足指定的数目，举个例子，如果参数指定需要入队列3个元素，但队列中只剩下2个空闲空间，那么就将其中2个元素入队列，出队列情况同理。<br>　　下面以两个核同时往队列各写入一个元素来介绍无锁环形缓冲区支持的多生产者入队列功能，其他的操作方式都可以从这里推演出来。在代码中多生产者入队列相关的函数为__rte_ring_mp_do_enqueue()，下面的流程也是根据这个函数整理出来的。<br>　　1）    初始状态下生产者的头和尾指向了同一个位置。如下图所示：</p>
-<div align="center"> <img src="/2016/11/20/dpdk-ring-buffer/多生产者入队列初始状态.png" title="图2 多生产者入队列初始状态"> </div>
-　　2）    第一步，在两个核上，将r->prod.head和r->prod.tail分别拷贝到本地的临时变量prod_head和prod_tail中，然后将本地临时变量prod_next指向队列的下一个空闲位置。检查队列中是否有足够的空间，如果没有，则返回失败（如果是写入多个元素，没有足够剩余空间的话，则需要看指定的模式，如果是尽力而为模式，则尽可能往队列中写入元素；否则返回失败）。如下图所示：
-<div align="center"> <img src="/2016/11/20/dpdk-ring-buffer/多生产者入队列第一步.png" title="图3 多生产者入队列第一步"> </div>
-　　3）    第二步，使用CAS操作指令将本地变量prod_next的值赋值给r->prod.head，即两者指向同一个位置。CAS操作指令有如下特性：
-　　a)    如果r->prod.head不等于本地变量prod_head，则CAS操作失败，代码重新从第一步开始执行。
-　　b)    如果r->prod.head等于本地变量prod_head，则CAS操作成功，代码继续往后执行。
-在这里我们假定在核1上操作成功，那么对于核2该操作就会失败，核2会从第一步重新执行。如下图所示：
-<div align="center"> <img src="/2016/11/20/dpdk-ring-buffer/多生产者入队列第二步.png" title="图4 多生产者入队列第二步"> </div>
-　　4）    第三步，核2上的CAS操作成功，核1上成功往环形缓冲区中写入了一个元素（obj4），接着核2也成功往环形缓冲区中写入了一个元素（obj5）。如下图所示：
-<div align="center"> <img src="/2016/11/20/dpdk-ring-buffer/多生产者入队列第三步.png" title="图5 多生产者入队列第三步"> </div>
-　　5）    第四步，在第三步中两个核都已经成功往环形缓冲区写入了一个元素，现在两个核都需要更新r->prod.tail。这里又有一个条件，就是只有r->prod.tail等于本地变量prod_head的核才能去更新r->prod.tail的值。从图中可以看到，目前只有在核1上才能满足这个条件，核2不满足，因此更新r->prod.tail的操作只在核1上进行，核2需要等待核1完成。如下图所示：
-<div align="center"> <img src="/2016/11/20/dpdk-ring-buffer/多生产者入队列第四步.png" title="图6 多生产者入队列第四步"> </div>
-　　6）    第五步，在第四步中，一旦核1完成了更新r->prod.tail的操作，那么核2也能满足更新r->prod.tail的条件，核2此时也会去更新r->prod.tail。如下图所示：
-<div align="center"> <img src="/2016/11/20/dpdk-ring-buffer/多生产者入队列第五步.png" title="图7 多生产者入队列第五步"> </div>
-## 无锁环形缓冲区的回绕
-　　DPDK中的无锁环形缓冲区还有另一个特性，那就是充分利用了unsigned类型的回绕特点，这样对于缓冲区中已用空间和剩余空间的计算就得到了极大的简化，也使得生产者头和尾、消费者头和尾的下标值不局限在0和size(ring) – 1之间，只要在0和2^32 - 1范围之内即可。这一点可以参考dpdk的开发者文档，其具体实现也包含在了上节介绍的操作流程当中，感兴趣的可以去看下。
+<p>　　联合体Value将Lua中所有可能的值都囊括了进来，比如通过包含GCObject *类型的成员gc，可以将所有需要GC的值都包含进来。结构体TValue包含了两个成员，一个是联合体类型Value的对象value_，用于表示Lua中所有可能出现的值，另一个是int类型的tt_，用来表示Value具体表示哪种类型的值。这样通过TValue就是可以表示Lua中所有的值及其类型了。<br>　　那如何将TValue与某种具体类型的值之间做转换呢？其主要的逻辑是将TValue中的value_及tt_与具体的数据及其类型对应起来做转换。以TValue和LUA_TNUMFLT之间的转换为例：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">/* Macro to test type */</span><br><span class="line">#define ttisfloat(o)		checktag((o), LUA_TNUMFLT)</span><br><span class="line"></span><br><span class="line">/* Macro to access values */</span><br><span class="line">#define fltvalue(o)	check_exp(ttisfloat(o), val_(o).n)</span><br><span class="line"></span><br><span class="line">#define val_(o)		((o)-&gt;value_)</span><br><span class="line">#define settt_(o,t)	((o)-&gt;tt_=(t))</span><br><span class="line"></span><br><span class="line">/* Macro to set value */</span><br><span class="line">#define setfltvalue(obj,x) \</span><br><span class="line">  &#123; TValue *io=(obj); val_(io).n=(x); settt_(io, LUA_TNUMFLT); &#125;</span><br></pre></td></tr></table></figure>
 
-<p><strong>参考文章:</strong><br>　　1、<a href="http://dpdk.org/doc/guides/prog_guide/" target="_blank" rel="noopener">http://dpdk.org/doc/guides/prog_guide/</a></p>
+<p>　　我们可以通过宏fltvalue()从TValue对象中取出其中存放的实数，通过宏setfltvalue()将实数存放到TValue对象中，并将其内部类型设置为LUA_TNUMFLT。</p>
+<h2 id="垃圾回收类型及其“继承”"><a href="#垃圾回收类型及其“继承”" class="headerlink" title="垃圾回收类型及其“继承”"></a>垃圾回收类型及其“继承”</h2><p>　　上面说到，Value将Lua中所有可能的值都包含了进来，从它的定义中我们不难看出，它确实将布尔类型、整数类型、实数类型、轻量级函数类型等类型的值包含了进来，只要给Value类型的对象赋其中某一个类型的值就行，但是为什么说通过包含GCObject *类型的gc成员就将所有需要GC的类型的值也包含进来了呢？我们先来看下GCObject的定义：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line">/* Common type for all collectable objects */</span><br><span class="line">typedef struct GCObject GCObject;</span><br><span class="line"></span><br><span class="line">/* Common Header for all collectable objects (in macro form, to be included in other objects) */</span><br><span class="line">#define CommonHeader	GCObject *next; lu_byte tt; lu_byte marked</span><br><span class="line"></span><br><span class="line">/* Common type has only the common header */</span><br><span class="line">struct GCObject &#123;</span><br><span class="line">  CommonHeader;</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">typedef struct TString &#123;</span><br><span class="line">  CommonHeader;		</span><br><span class="line">  </span><br><span class="line">  lu_byte extra;  /* reserved words for short strings; &quot;has hash&quot; for longs */</span><br><span class="line">  lu_byte shrlen;  /* length for short strings */ </span><br><span class="line">  unsigned int hash;	</span><br><span class="line">  union &#123;</span><br><span class="line">    size_t lnglen;  /* length for long strings */</span><br><span class="line">    struct TString *hnext;  /* linked list for hash table */</span><br><span class="line">  &#125; u;</span><br><span class="line">&#125; TString;</span><br></pre></td></tr></table></figure>
+
+<p>　　为了更好地说明上面提出来的问题，我们通过一个需要进行GC的类型TString（即lua中的字符串类型）来进行辅助说明。从上面GCObject类型和TString类型的定义中可以看出，两者均在开头包含了一个宏CommonHeader。这就使得这两个类型所对应的对象的内存布局的头部是相同的，两者的内存布局如图1所示，而TString类型的对象中多出来的内容则是其私有数据，因而所有需要GCObject类型的对象地方就都可以将TString类型的对象传进去，当然需要做一个强制类型转换(毕竟是伪继承)，将TString类型强转伪GCObject类型，在实际使用的时候，我们再将其强转回TString类型即可。所有其他需要进行GC的类型都和TString一样，会在定义的开头加上CommonHeader，从而实现类似的功能。从另外一方面看，我们可以将GCObject看成TString、Table等的父类，这也很好地体现了在C中如何实现继承等面向对象编程的方法。</p>
+<div align="center"> <img src="/2019/06/03/value-and-its-type-in-lua/GCObject和TString的内存布局.png" title="图1 GCObject和TString的内存布局"> </div>
+　　从上面的分析我们可以知道，GCObject类型可以说是所有需要进行垃圾回收的类型的代表。在一些接口方面，都是以GCObject类型进行呈现的。例如在Lua中，进程要创建一个需要进行垃圾回收类型的对象时，都是申请一个GCObject对象，同时将具体的类型和所需要的内存大小通过参数传递进去。申请GCObject对象成功后，在函数外层再根据上下文环境将GCObject对象转换为具体类型的对象，再进行类型私有数据的初始化等操作。还是以TString为例，假设要创建一个TString类型的对象，lua源码中有如下例程：
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">/* 创建一个新的字符串对象，未填入具体的字符串内容，只是申请了内存空间 */</span><br><span class="line">static TString *createstrobj (lua_State *L, size_t l, int tag, unsigned int h) &#123;</span><br><span class="line">  TString *ts;</span><br><span class="line">  GCObject *o;</span><br><span class="line">  size_t totalsize;  /* total size of TString object */</span><br><span class="line"></span><br><span class="line">  /* 计算字符串对应需要的内存大小，包括头部和内容，内容紧跟在头部之后 */</span><br><span class="line">  totalsize = sizelstring(l);</span><br><span class="line"></span><br><span class="line">  /* 根据存放字符串所需的内存大小和类型标记创建一个新的GCObject对象 */</span><br><span class="line">  o = luaC_newobj(L, tag, totalsize);</span><br><span class="line"></span><br><span class="line">  /* 将GCObject类型转换为具体的TString类型 */</span><br><span class="line">  ts = gco2ts(o);</span><br><span class="line"></span><br><span class="line">  /* 保存字符串对应的hash值 */</span><br><span class="line">  ts-&gt;hash = h;</span><br><span class="line">  ts-&gt;extra = 0;</span><br><span class="line"></span><br><span class="line">  /* 字符串以&apos;\0&apos;结尾 */</span><br><span class="line">  getstr(ts)[l] = &apos;\0&apos;;  /* ending 0 */</span><br><span class="line">  return ts;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>　　注意到上面的例程中有一条将GCObject类型对象强转为TString类型对象的语句。为了方便做类似的转换，Lua专门定义了一个联合体及一系列的宏来辅助进行这样的操作：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">union GCUnion &#123;</span><br><span class="line">  GCObject gc;  /* common header */</span><br><span class="line">  struct TString ts;</span><br><span class="line">  struct Udata u;</span><br><span class="line">  union Closure cl;</span><br><span class="line">  struct Table h;</span><br><span class="line">  struct Proto p;</span><br><span class="line">  struct lua_State th;  /* thread */</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">#define cast_u(o)	cast(union GCUnion *, (o))</span><br><span class="line"></span><br><span class="line">#define gco2ts(o)  check_exp(novariant((o)-&gt;tt) == LUA_TSTRING, &amp;((cast_u(o))-&gt;ts))</span><br></pre></td></tr></table></figure>
+
+<p>　　为了节省篇幅，我们还是以GCObject类型强转TString为例。在createstrobj()这个创建TString类型的对象的例程中，我们先计算了我们要创建的TString对象的大小，包括TString结构体本身（字符串管理结构）以及实际内容的总大小，然后以字符串类型（可以是长字符串，也可以是短字符串）及对象大小来调用luaC_newobj()结构创建一个GCObject类型的对象(在当前上下文中，这是一个伪装成GCObject的TString)，然后调用gco2ts()这个宏将其转换为TString类型的对象。这个宏的关键点是“&amp;((cast_u(o))-&gt;ts)”，由于GCUnion是一个联合体，而该联合体内囊括的所有类型又都是需要GC的类型，那么可以说联合体GCUnion的一个对象和所有需要进行GC的类型的对象的内存布局的开头是一样的，正如GCObject和TString的内存布局开头那样，那么关键点中的“cast_u(o)”是可行的，而且不会引起错误，然后我们再以TString的方式来访问这个联合体，即关键点的剩余部分“&amp;((cast_u(o))-&gt;ts)”，这样的效果就是将GCObject对象转换为了TString对象。其他需要GC的类型也可以用类似方式进行转换。<br>　　本文关于Lua中值及其类型的总结就到这里了。<br><strong>参考：</strong><br>1、 <a href="https://www.lua.org/manual/5.3/manual.html" target="_blank" rel="noopener">Lua 5.3 Reference Manual</a><br>2、 《Lua设计与实现》</p>
 
       
     </div>
@@ -575,7 +558,7 @@
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
     
-    <a href="https://TitenWang.github.io/2016/11/20/dpdk-ring-buffer/" title="DPDK中的无锁环形缓冲区">https://TitenWang.github.io/2016/11/20/dpdk-ring-buffer/</a>
+    <a href="https://TitenWang.github.io/2019/06/03/value-and-its-type-in-lua/" title="Lua中的值及其类型">https://TitenWang.github.io/2019/06/03/value-and-its-type-in-lua/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>
@@ -588,9 +571,9 @@
       
         <div class="post-tags">
           
-            <a href="/tags/网络编程/" rel="tag"># 网络编程</a>
+            <a href="/tags/Lua/" rel="tag"># Lua</a>
           
-            <a href="/tags/DPDK/" rel="tag"># DPDK</a>
+            <a href="/tags/编程语言/" rel="tag"># 编程语言</a>
           
         </div>
       
@@ -603,8 +586,8 @@
         <div class="post-nav">
           <div class="post-nav-next post-nav-item">
             
-              <a href="/2016/10/23/client-nonblocking-connect/" rel="next" title="客户端非阻塞socket建链流程">
-                <i class="fa fa-chevron-left"></i> 客户端非阻塞socket建链流程
+              <a href="/2017/10/05/implementation-of-epoll/" rel="next" title="epoll的原理和实现">
+                <i class="fa fa-chevron-left"></i> epoll的原理和实现
               </a>
             
           </div>
@@ -612,10 +595,6 @@
           <span class="post-nav-divider"></span>
 
           <div class="post-nav-prev post-nav-item">
-            
-              <a href="/2017/03/26/ebpf-map/" rel="prev" title="eBPF中的map">
-                eBPF中的map <i class="fa fa-chevron-right"></i>
-              </a>
             
           </div>
         </div>
@@ -836,7 +815,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#无锁环形缓冲区的组织"><span class="nav-text">无锁环形缓冲区的组织</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#无锁环形缓冲区的操作"><span class="nav-text">无锁环形缓冲区的操作</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#基本数据类型及其子类型"><span class="nav-text">基本数据类型及其子类型</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#值表示的统一数据结构"><span class="nav-text">值表示的统一数据结构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#垃圾回收类型及其“继承”"><span class="nav-text">垃圾回收类型及其“继承”</span></a></li></ol></div>
             
 
           </div>
