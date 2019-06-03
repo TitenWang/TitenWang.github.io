@@ -104,16 +104,16 @@
 <meta name="keywords" content="网络编程,eBPF,协议栈">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Linux中rps&#x2F;rfs的原理及实现">
-<meta property="og:url" content="https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/index.html">
+<meta property="og:url" content="https://tqr.ink/2017/07/09/implementation-of-rps-and-rfs/index.html">
 <meta property="og:site_name" content="我心知度">
 <meta property="og:description" content="rps的全称是Receive Package Steering，rfs的全称是Receive Flow Steering，rps和rfs是google的工程师提供的两个补丁，用以在软件层面实现报文在多个cpu之间的负载均衡以及提高报文处理的缓存命中率。rps和rfs出现的原因主要有以下两个：　　1、    对于多队列网卡，网卡硬件接收队列与cpu核数在数量上不匹配导致报文在cpu之间分配不均。">
 <meta property="og:locale" content="zh-CN">
-<meta property="og:image" content="https://titenwang.github.io/2017/07/09/implementation-of-rps-and-rfs/ents项内存布局.png">
+<meta property="og:image" content="https://tqr.ink/2017/07/09/implementation-of-rps-and-rfs/ents项内存布局.png">
 <meta property="og:updated_time" content="2019-05-29T09:35:06.438Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Linux中rps&#x2F;rfs的原理及实现">
 <meta name="twitter:description" content="rps的全称是Receive Package Steering，rfs的全称是Receive Flow Steering，rps和rfs是google的工程师提供的两个补丁，用以在软件层面实现报文在多个cpu之间的负载均衡以及提高报文处理的缓存命中率。rps和rfs出现的原因主要有以下两个：　　1、    对于多队列网卡，网卡硬件接收队列与cpu核数在数量上不匹配导致报文在cpu之间分配不均。">
-<meta name="twitter:image" content="https://titenwang.github.io/2017/07/09/implementation-of-rps-and-rfs/ents项内存布局.png">
+<meta name="twitter:image" content="https://tqr.ink/2017/07/09/implementation-of-rps-and-rfs/ents项内存布局.png">
 
 
 
@@ -121,7 +121,7 @@
 
   
   
-  <link rel="canonical" href="https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/">
+  <link rel="canonical" href="https://tqr.ink/2017/07/09/implementation-of-rps-and-rfs/">
 
 
 
@@ -380,7 +380,7 @@
   
   
   <div class="post-block">
-    <link itemprop="mainEntityOfPage" href="https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/">
+    <link itemprop="mainEntityOfPage" href="https://tqr.ink/2017/07/09/implementation-of-rps-and-rfs/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
       <meta itemprop="name" content="TitenWang">
@@ -594,7 +594,7 @@
   <li class="post-copyright-link">
     <strong>本文链接：</strong>
     
-    <a href="https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/" title="Linux中rps/rfs的原理及实现">https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/</a>
+    <a href="https://tqr.ink/2017/07/09/implementation-of-rps-and-rfs/" title="Linux中rps/rfs的原理及实现">https://tqr.ink/2017/07/09/implementation-of-rps-and-rfs/</a>
   </li>
   <li class="post-copyright-license">
     <strong>版权声明： </strong>本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" rel="noopener" target="_blank"><i class="fa fa-fw fa-creative-commons"></i>BY-NC-SA</a> 许可协议。转载请注明出处！</li>

@@ -1,46 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://TitenWang.github.io/2019/06/03/value-and-its-type-in-lua/</loc>
+    <loc>https://tqr.ink/2019/06/03/value-and-its-type-in-lua/</loc>
     <lastmod>2019-06-03</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2016/09/03/aio-epoll-eventfd/</loc>
+    <loc>https://tqr.ink/2016/09/03/aio-epoll-eventfd/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2016/08/02/slab-shared-memory/</loc>
+    <loc>https://tqr.ink/2016/08/02/slab-shared-memory/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2016/08/03/signal-control/</loc>
+    <loc>https://tqr.ink/2016/08/03/signal-control/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2016/08/02/set-script-engine/</loc>
+    <loc>https://tqr.ink/2016/08/02/set-script-engine/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2016/10/16/ngx-stream-limit-conn-module/</loc>
+    <loc>https://tqr.ink/2016/10/16/ngx-stream-limit-conn-module/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2016/10/15/ngx-stream-access-module/</loc>
+    <loc>https://tqr.ink/2016/10/15/ngx-stream-access-module/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2017/05/01/intel-82599-transmit-packet/</loc>
+    <loc>https://tqr.ink/2017/05/01/intel-82599-transmit-packet/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2017/04/16/intel-82599-receive-packet/</loc>
+    <loc>https://tqr.ink/2017/04/16/intel-82599-receive-packet/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2017/07/09/implementation-of-rps-and-rfs/</loc>
+    <loc>https://tqr.ink/2017/07/09/implementation-of-rps-and-rfs/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2017/10/05/implementation-of-epoll/</loc>
+    <loc>https://tqr.ink/2017/10/05/implementation-of-epoll/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2017/03/26/ebpf-map/</loc>
+    <loc>https://tqr.ink/2017/03/26/ebpf-map/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2016/11/20/dpdk-ring-buffer/</loc>
+    <loc>https://tqr.ink/2016/11/20/dpdk-ring-buffer/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>  <url>
-    <loc>https://TitenWang.github.io/2016/10/23/client-nonblocking-connect/</loc>
+    <loc>https://tqr.ink/2016/10/23/client-nonblocking-connect/</loc>
     <lastmod>2019-05-29</lastmod>
   </url>
 </urlset>
