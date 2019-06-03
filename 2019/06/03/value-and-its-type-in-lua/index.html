@@ -109,7 +109,7 @@
 <meta property="og:description" content="Lua是一门动态类型的语言，这意味着Lua中的变量没有类型，而值才有类型。一个变量可以在不同时刻指向不同类型的值。下面将对Lua中的值及其类型做一些总结。">
 <meta property="og:locale" content="zh-CN">
 <meta property="og:image" content="https://tqr.ink/2019/06/03/value-and-its-type-in-lua/GCObject和TString的内存布局.png">
-<meta property="og:updated_time" content="2019-06-03T07:34:23.390Z">
+<meta property="og:updated_time" content="2019-06-03T08:15:38.004Z">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Lua中的值及其类型">
 <meta name="twitter:description" content="Lua是一门动态类型的语言，这意味着Lua中的变量没有类型，而值才有类型。一个变量可以在不同时刻指向不同类型的值。下面将对Lua中的值及其类型做一些总结。">
@@ -423,7 +423,7 @@
                 
               
 
-              <time title="创建时间：2019-06-03 09:34:44 / 修改时间：15:34:23" itemprop="dateCreated datePublished" datetime="2019-06-03T09:34:44+08:00">2019-06-03</time>
+              <time title="创建时间：2019-06-03 09:34:44 / 修改时间：16:15:38" itemprop="dateCreated datePublished" datetime="2019-06-03T09:34:44+08:00">2019-06-03</time>
             
 
             
@@ -518,7 +518,7 @@
 <p>　　注意到上面的例程中有一条将GCObject类型对象强转为TString类型对象的语句。为了方便做类似的转换，Lua专门定义了一个联合体及一系列的宏来辅助进行这样的操作：</p>
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">union GCUnion &#123;</span><br><span class="line">  GCObject gc;  /* common header */</span><br><span class="line">  struct TString ts;</span><br><span class="line">  struct Udata u;</span><br><span class="line">  union Closure cl;</span><br><span class="line">  struct Table h;</span><br><span class="line">  struct Proto p;</span><br><span class="line">  struct lua_State th;  /* thread */</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line">#define cast_u(o)	cast(union GCUnion *, (o))</span><br><span class="line"></span><br><span class="line">#define gco2ts(o)  check_exp(novariant((o)-&gt;tt) == LUA_TSTRING, &amp;((cast_u(o))-&gt;ts))</span><br></pre></td></tr></table></figure>
 
-<p>　　为了节省篇幅，我们还是以GCObject类型强转TString为例。在createstrobj()这个创建TString类型的对象的例程中，我们先计算了我们要创建的TString对象的大小，包括TString结构体本身（字符串管理结构）以及实际内容的总大小，然后以字符串类型（可以是长字符串，也可以是短字符串）及对象大小来调用luaC_newobj()结构创建一个GCObject类型的对象(在当前上下文中，这是一个伪装成GCObject的TString)，然后调用gco2ts()这个宏将其转换为TString类型的对象。这个宏的关键点是“&amp;((cast_u(o))-&gt;ts)”，由于GCUnion是一个联合体，而该联合体内囊括的所有类型又都是需要GC的类型，那么可以说联合体GCUnion的一个对象和所有需要进行GC的类型的对象的内存布局的开头是一样的，正如GCObject和TString的内存布局开头那样，那么关键点中的“cast_u(o)”是可行的，而且不会引起错误，然后我们再以TString的方式来访问这个联合体，即关键点的剩余部分“&amp;((cast_u(o))-&gt;ts)”，这样的效果就是将GCObject对象转换为了TString对象。其他需要GC的类型也可以用类似方式进行转换。<br>　　本文关于Lua中值及其类型的总结就到这里了。<br><strong>参考：</strong><br>1、 <a href="https://www.lua.org/manual/5.3/manual.html" target="_blank" rel="noopener">Lua 5.3 Reference Manual</a><br>2、 《Lua设计与实现》</p>
+<p>　　为了节省篇幅，我们还是以GCObject类型强转TString为例。在createstrobj()这个创建TString类型的对象的例程中，我们先计算了我们要创建的TString对象的大小，包括TString结构体本身（字符串管理结构）以及实际内容的总大小，然后以字符串类型（可以是长字符串，也可以是短字符串）及对象大小来调用luaC_newobj()函数创建一个GCObject类型的对象(在当前上下文中，这是一个伪装成GCObject的TString)，然后调用gco2ts()这个宏将其转换为TString类型的对象。这个宏的关键点是“&amp;((cast_u(o))-&gt;ts)”，由于GCUnion是一个联合体，而该联合体内囊括的所有类型又都是需要GC的类型，那么可以说联合体GCUnion的一个对象和所有需要进行GC的类型的对象的内存布局的开头是一样的，正如GCObject和TString的内存布局开头那样，那么关键点中的“cast_u(o)”是可行的，而且不会引起错误，然后我们再以TString的方式来访问这个联合体，即关键点的剩余部分“&amp;((cast_u(o))-&gt;ts)”，这样的效果就是将GCObject对象转换为了TString对象。其他需要GC的类型也可以用类似方式进行转换。<br>　　本文关于Lua中值及其类型的总结就到这里了。<br><strong>参考：</strong><br>1、 <a href="https://www.lua.org/manual/5.3/manual.html" target="_blank" rel="noopener">Lua 5.3 Reference Manual</a><br>2、 《Lua设计与实现》</p>
 
       
     </div>
