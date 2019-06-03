@@ -84,8 +84,8 @@
         <category>DPDK</category>
       </categories>
       <tags>
-        <tag>网络编程</tag>
         <tag>DPDK</tag>
+        <tag>网络编程</tag>
       </tags>
   </entry>
   <entry>
@@ -96,8 +96,8 @@
         <category>Nginx</category>
       </categories>
       <tags>
-        <tag>Nginx</tag>
         <tag>网络编程</tag>
+        <tag>Nginx</tag>
       </tags>
   </entry>
   <entry>
